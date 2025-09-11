@@ -1,8 +1,87 @@
 {
   "compilerOptions": {
+    // JavaScript checking and allowance - keeping flexible for ExpressJS development
+    "checkJs": true,
     "allowJs": true,
-    "checkJs": false,
-    "skipLibCheck": true
+
+    // Unused variable handling - align with ESLint's approach
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    // Target ES2020 to match modern JavaScript features used in other configs
+    "target": "ES2020",
+    "lib": ["ES2020"],
+
+    // Module system - align with ESLint's ES module approach
+    "module": "ESNext", // Changed from commonjs to support ES modules
+    "moduleResolution": "node",
+    "types": ["node"],
+
+    // Import/export compatibility - essential for modern JavaScript
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+
+    // File system and casing - important for cross-platform consistency
+    "forceConsistentCasingInFileNames": true, // Changed to true for better consistency
+
+    // JSON module support - useful for configuration files
+    "resolveJsonModule": true,
+
+    // Performance optimization
+    "skipLibCheck": true,
+
+    // Type checking strictness - balanced approach for gradual typing
+    "strict": true,
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
+    "noImplicitThis": false,
+
+    // Module resolution behavior
+    "noResolve": false,
+    "isolatedModules": true, // Changed to true to support Babel transpilation better
+
+    // Global access for UMD modules
+    "allowUmdGlobalAccess": true,
+
+    // Type definitions paths - align with project structure
+    "typeRoots": ["./node_modules/@types"],
+
+    // Base URL for cleaner imports
+    "baseUrl": "./src",
+
+    // Path mapping for better import organization
+    "paths": {
+      "@/*": ["*"],
+      "@/controllers/*": ["controllers/*"],
+      "@/middleware/*": ["middleware/*"],
+      "@/models/*": ["models/*"],
+      "@/routes/*": ["routes/*"],
+      "@/services/*": ["services/*"],
+      "@/utils/*": ["utils/*"],
+      "@/config/*": ["config/*"]
+    }
   },
-  "exclude": ["node_modules", "**/node_modules/*", "dist", "build"]
+
+  // Include patterns - comprehensive coverage for ExpressJS project
+  "include": [
+    "src/**/*",
+    "*.js",
+    "*.mjs", // Include .mjs files to match ESLint config
+    ".babelrc", // Include Babel config for better IntelliSense
+    "eslint.config.mjs" // Include ESLint config for editor support
+  ],
+
+  // Exclude patterns - align with common ExpressJS project structure
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "logs",
+    ".env*",
+    "tests/**/*",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "eslint.config.mjs"
+  ]
 }

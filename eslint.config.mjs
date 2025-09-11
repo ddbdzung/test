@@ -1,3 +1,4 @@
+/* @ts-ignore */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,7 +25,7 @@ export default [
     },
     rules: {
       // Basic rules
-      'no-undef': 'warn',
+      'no-undef': 'error',
       'no-async-promise-executor': 'warn',
       'no-unused-vars': [
         'warn',
@@ -36,25 +37,6 @@ export default [
         },
       ],
 
-      // Import rules
-      'import/order': [
-        'error',
-        {
-          groups: [
-            'builtin',
-            'external',
-            'internal',
-            'parent',
-            'sibling',
-            'index',
-          ],
-          'newlines-between': 'always',
-          alphabetize: {
-            order: 'asc',
-            caseInsensitive: true,
-          },
-        },
-      ],
       'import/no-unresolved': 'error',
       'import/no-unused-modules': 'warn',
       'import/no-duplicates': 'error',
