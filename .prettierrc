@@ -1,5 +1,6 @@
 {
   "singleQuote": true,
+  "semi": false,
   "trailingComma": "es5",
   "tabWidth": 2,
   "printWidth": 80,
@@ -16,9 +17,8 @@
     "<THIRD_PARTY_MODULES>",
     "^@/core/.*$",
     "^@/configs/.*$",
-    "^@/providers/.*$",
-    "^@/modules/.*$",
     "^@/utils/.*$",
+    "^@/modules/.*$",
     "^[./]"
   ],
   "importOrderSeparation": true,

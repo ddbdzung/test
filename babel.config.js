@@ -16,6 +16,21 @@ module.exports = {
     ],
   ],
   plugins: [
+    // Path alias resolution for cleaner imports
+    [
+      'module-resolver',
+      {
+        root: ['./src'],
+        alias: {
+          '@/core': './src/core',
+          '@/config': './src/config',
+          '@/constants': './src/core/constants',
+          '@/helpers': './src/core/helpers',
+          '@/utils': './src/core/utils',
+        },
+      },
+    ],
+
     // Essential plugins for modern JavaScript
     '@babel/plugin-transform-runtime',
 
@@ -99,4 +114,4 @@ module.exports = {
 
   // Only process JavaScript files
   only: ['src/**/*.js', 'src/**/*.mjs'],
-};
+}

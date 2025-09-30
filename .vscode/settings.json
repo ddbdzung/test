@@ -1,31 +1,110 @@
 {
-  "eslint.validate": ["javascript", "typescript"],
+  // ==========================================
+  // JAVASCRIPT PROJECT OPTIMIZED SETTINGS
+  // ==========================================
+
+  // ------------------
+  // ESLint Configuration
+  // ------------------
+  "eslint.validate": ["javascript"],
   "eslint.run": "onType",
+  "eslint.format.enable": false, // Let Prettier handle formatting
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "never",
-    "source.organizeImports": "never"
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
   },
-  "typescript.preferences.includePackageJsonAutoImports": "auto",
-  "typescript.suggest.autoImports": true,
-  "typescript.inlayHints.parameterNames.enabled": "all",
-  "typescript.inlayHints.variableTypes.enabled": true,
-  "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+
+  // ------------------
+  // JavaScript Language Support
+  // ------------------
   "javascript.suggest.autoImports": true,
+  "javascript.suggest.includeAutomaticOptionalChainCompletions": true,
+  "javascript.inlayHints.parameterNames.enabled": "literals",
+  "javascript.inlayHints.variableTypes.enabled": false,
+  "javascript.inlayHints.functionLikeReturnTypes.enabled": false,
+  "javascript.preferences.importModuleSpecifier": "relative",
+  "javascript.suggest.completeFunctionCalls": true,
+
+  // ------------------
+  // File Associations & Formatting
+  // ------------------
   "files.associations": {
     "*.js": "javascript",
-    "*.mjs": "javascript"
+    "*.mjs": "javascript",
+    ".env*": "properties",
+    "*.config.js": "javascript"
   },
   "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+  "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
+
+  // ------------------
+  // Prettier Configuration
+  // ------------------
   "prettier.enable": true,
   "editor.formatOnSave": true,
-  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+  "prettier.requireConfig": true,
+
+  // ------------------
+  // Node.js Development
+  // ------------------
+  "npm.packageManager": "pnpm",
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact"
+  },
+
+  // ------------------
+  // Editor Enhancements
+  // ------------------
+  "editor.suggest.insertMode": "replace",
+  "editor.acceptSuggestionOnCommitCharacter": false,
+  "editor.tabCompletion": "on",
+  "editor.parameterHints.enabled": true,
+  "editor.wordWrap": "on",
+  "editor.minimap.enabled": false,
+
+  // ------------------
+  // Path IntelliSense (for @/ aliases)
+  // ------------------
+  "path-intellisense.mappings": {
+    "@/core": "${workspaceRoot}/src/core",
+    "@/config": "${workspaceRoot}/src/config",
+    "@/constants": "${workspaceRoot}/src/core/constants",
+    "@/helpers": "${workspaceRoot}/src/core/helpers",
+    "@/utils": "${workspaceRoot}/src/core/utils"
+  },
+
+  // ------------------
+  // Performance & Exclude Patterns
+  // ------------------
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/coverage": true,
+    "**/.nyc_output": true,
+    "**/logs": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/coverage": true,
+    "pnpm-lock.yaml": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/coverage/**": true
+  },
+
+  // ------------------
+  // TypeScript Services (minimal for JS support)
+  // ------------------
   "typescript.disableAutomaticTypeAcquisition": true,
-  "typescript.tsserver.watchOptions": {
-    "excludeDirectories": ["**/node_modules", "**/.git", "**/dist", "**/build"]
-  }
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false
 }

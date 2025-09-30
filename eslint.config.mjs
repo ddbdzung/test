@@ -23,6 +23,24 @@ export default [
       import: importPlugin,
       security: securityPlugin,
     },
+    settings: {
+      'import/resolver': {
+        alias: {
+          map: [
+            ['@/core', './src/core'],
+            ['@/config', './src/config'],
+            ['@/constants', './src/core/constants'],
+            ['@/helpers', './src/core/helpers'],
+            ['@/utils', './src/core/utils'],
+          ],
+          extensions: ['.js', '.mjs', '.json'],
+        },
+        node: {
+          paths: ['src'],
+          extensions: ['.js', '.mjs'],
+        },
+      },
+    },
     rules: {
       // Basic rules
       'no-undef': 'error',

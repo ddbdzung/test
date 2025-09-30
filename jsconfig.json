@@ -51,14 +51,11 @@
 
     // Path mapping for better import organization
     "paths": {
-      "@/*": ["*"],
-      "@/controllers/*": ["controllers/*"],
-      "@/middleware/*": ["middleware/*"],
-      "@/models/*": ["models/*"],
-      "@/routes/*": ["routes/*"],
-      "@/services/*": ["services/*"],
-      "@/utils/*": ["utils/*"],
-      "@/config/*": ["config/*"]
+      "@/core/*": ["core/*"],
+      "@/config/*": ["config/*"],
+      "@/constants/*": ["core/constants/*"],
+      "@/helpers/*": ["core/helpers/*"],
+      "@/utils/*": ["core/utils/*"]
     }
   },
 

@@ -9,8 +9,8 @@
  * @returns {string} - The exact type name
  */
 const getType = value => {
-  return Object.prototype.toString.call(value).slice(8, -1).toLowerCase();
-};
+  return Object.prototype.toString.call(value).slice(8, -1).toLowerCase()
+}
 
 /**
  * Check if value is a string
@@ -18,8 +18,8 @@ const getType = value => {
  * @returns {boolean}
  */
 const isString = value => {
-  return typeof value === 'string';
-};
+  return typeof value === 'string'
+}
 
 /**
  * Check if value is a number (excluding NaN)
@@ -27,8 +27,8 @@ const isString = value => {
  * @returns {boolean}
  */
 const isNumber = value => {
-  return typeof value === 'number' && !isNaN(value);
-};
+  return typeof value === 'number' && !isNaN(value)
+}
 
 /**
  * Check if value is a boolean
@@ -36,8 +36,8 @@ const isNumber = value => {
  * @returns {boolean}
  */
 const isBoolean = value => {
-  return typeof value === 'boolean';
-};
+  return typeof value === 'boolean'
+}
 
 /**
  * Check if value is undefined
@@ -45,8 +45,8 @@ const isBoolean = value => {
  * @returns {boolean}
  */
 const isUndefined = value => {
-  return typeof value === 'undefined';
-};
+  return typeof value === 'undefined'
+}
 
 /**
  * Check if value is null
@@ -54,8 +54,8 @@ const isUndefined = value => {
  * @returns {boolean}
  */
 const isNull = value => {
-  return value === null;
-};
+  return value === null
+}
 
 /**
  * Check if value is null or undefined
@@ -63,8 +63,8 @@ const isNull = value => {
  * @returns {boolean}
  */
 const isNullish = value => {
-  return value === null || value === undefined;
-};
+  return value === null || value === undefined
+}
 
 /**
  * Check if value is a function
@@ -72,8 +72,8 @@ const isNullish = value => {
  * @returns {boolean}
  */
 const isFunction = value => {
-  return typeof value === 'function';
-};
+  return typeof value === 'function'
+}
 
 /**
  * Check if value is an object (excluding null and arrays)
@@ -81,8 +81,8 @@ const isFunction = value => {
  * @returns {boolean}
  */
 const isObject = value => {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-};
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
 
 /**
  * Check if value is a plain object (created by Object constructor or literal)
@@ -90,11 +90,11 @@ const isObject = value => {
  * @returns {boolean}
  */
 const isPlainObject = value => {
-  if (!isObject(value)) return false;
+  if (!isObject(value)) return false
 
-  const proto = Object.getPrototypeOf(value);
-  return proto === null || proto === Object.prototype;
-};
+  const proto = Object.getPrototypeOf(value)
+  return proto === null || proto === Object.prototype
+}
 
 /**
  * Check if value is an array
@@ -102,8 +102,8 @@ const isPlainObject = value => {
  * @returns {boolean}
  */
 const isArray = value => {
-  return Array.isArray(value);
-};
+  return Array.isArray(value)
+}
 
 /**
  * Check if value is a plain array (not a subclass)
@@ -111,8 +111,8 @@ const isArray = value => {
  * @returns {boolean}
  */
 const isPlainArray = value => {
-  return Array.isArray(value) && value.constructor === Array;
-};
+  return Array.isArray(value) && value.constructor === Array
+}
 
 /**
  * Check if value is a Date object
@@ -120,8 +120,8 @@ const isPlainArray = value => {
  * @returns {boolean}
  */
 const isDate = value => {
-  return value instanceof Date && !isNaN(value.getTime());
-};
+  return value instanceof Date && !isNaN(value.getTime())
+}
 
 /**
  * Check if value is a RegExp
@@ -129,8 +129,8 @@ const isDate = value => {
  * @returns {boolean}
  */
 const isRegExp = value => {
-  return value instanceof RegExp;
-};
+  return value instanceof RegExp
+}
 
 /**
  * Check if value is an Error object
@@ -138,8 +138,8 @@ const isRegExp = value => {
  * @returns {boolean}
  */
 const isError = value => {
-  return value instanceof Error;
-};
+  return value instanceof Error
+}
 
 /**
  * Check if value is a Promise
@@ -152,8 +152,8 @@ const isPromise = value => {
     (value !== null &&
       typeof value === 'object' &&
       typeof value.then === 'function')
-  );
-};
+  )
+}
 
 /**
  * Check if value is a Symbol
@@ -161,8 +161,8 @@ const isPromise = value => {
  * @returns {boolean}
  */
 const isSymbol = value => {
-  return typeof value === 'symbol';
-};
+  return typeof value === 'symbol'
+}
 
 /**
  * Check if value is a BigInt
@@ -170,8 +170,8 @@ const isSymbol = value => {
  * @returns {boolean}
  */
 const isBigInt = value => {
-  return typeof value === 'bigint';
-};
+  return typeof value === 'bigint'
+}
 
 /**
  * Check if value is NaN
@@ -179,8 +179,8 @@ const isBigInt = value => {
  * @returns {boolean}
  */
 const isNanValue = value => {
-  return Number.isNaN(value);
-};
+  return Number.isNaN(value)
+}
 
 /**
  * Check if value is a finite number
@@ -188,8 +188,8 @@ const isNanValue = value => {
  * @returns {boolean}
  */
 const isFiniteNumber = value => {
-  return Number.isFinite(value);
-};
+  return Number.isFinite(value)
+}
 
 /**
  * Check if value is an integer
@@ -197,8 +197,8 @@ const isFiniteNumber = value => {
  * @returns {boolean}
  */
 const isInteger = value => {
-  return Number.isInteger(value);
-};
+  return Number.isInteger(value)
+}
 
 /**
  * Check if value is a safe integer
@@ -206,8 +206,8 @@ const isInteger = value => {
  * @returns {boolean}
  */
 const isSafeInteger = value => {
-  return Number.isSafeInteger(value);
-};
+  return Number.isSafeInteger(value)
+}
 
 /**
  * Check if value is empty (null, undefined, empty string, empty array, empty object)
@@ -215,11 +215,11 @@ const isSafeInteger = value => {
  * @returns {boolean}
  */
 const isEmpty = value => {
-  if (isNullish(value)) return true;
-  if (isString(value) || isArray(value)) return value.length === 0;
-  if (isObject(value)) return Object.keys(value).length === 0;
-  return false;
-};
+  if (isNullish(value)) return true
+  if (isString(value) || isArray(value)) return value.length === 0
+  if (isObject(value)) return Object.keys(value).length === 0
+  return false
+}
 
 /**
  * Check if value is a primitive type
@@ -235,8 +235,8 @@ const isPrimitive = value => {
     typeof value === 'string' ||
     typeof value === 'symbol' ||
     typeof value === 'bigint'
-  );
-};
+  )
+}
 
 /**
  * Check if value is an arguments object
@@ -244,8 +244,8 @@ const isPrimitive = value => {
  * @returns {boolean}
  */
 const isArguments = value => {
-  return getType(value) === 'arguments';
-};
+  return getType(value) === 'arguments'
+}
 
 /**
  * Check if value is array-like (has length property)
@@ -259,8 +259,8 @@ const isArrayLike = value => {
     typeof value.length === 'number' &&
     value.length >= 0 &&
     value.length <= Number.MAX_SAFE_INTEGER
-  );
-};
+  )
+}
 
 /**
  * Check if value is iterable
@@ -268,8 +268,8 @@ const isArrayLike = value => {
  * @returns {boolean}
  */
 const isIterable = value => {
-  return value != null && typeof value[Symbol.iterator] === 'function';
-};
+  return value != null && typeof value[Symbol.iterator] === 'function'
+}
 
 /**
  * Check if value is a Map
@@ -277,8 +277,8 @@ const isIterable = value => {
  * @returns {boolean}
  */
 const isMap = value => {
-  return value instanceof Map;
-};
+  return value instanceof Map
+}
 
 /**
  * Check if value is a Set
@@ -286,8 +286,8 @@ const isMap = value => {
  * @returns {boolean}
  */
 const isSet = value => {
-  return value instanceof Set;
-};
+  return value instanceof Set
+}
 
 /**
  * Check if value is a WeakMap
@@ -295,8 +295,8 @@ const isSet = value => {
  * @returns {boolean}
  */
 const isWeakMap = value => {
-  return value instanceof WeakMap;
-};
+  return value instanceof WeakMap
+}
 
 /**
  * Check if value is a WeakSet
@@ -304,8 +304,8 @@ const isWeakMap = value => {
  * @returns {boolean}
  */
 const isWeakSet = value => {
-  return value instanceof WeakSet;
-};
+  return value instanceof WeakSet
+}
 
 /**
  * Check if value is a typed array
@@ -325,8 +325,8 @@ const isTypedArray = value => {
     value instanceof Float64Array ||
     value instanceof BigInt64Array ||
     value instanceof BigUint64Array
-  );
-};
+  )
+}
 
 /**
  * Check if value is a Buffer (Node.js)
@@ -334,8 +334,8 @@ const isTypedArray = value => {
  * @returns {boolean}
  */
 const isBuffer = value => {
-  return typeof Buffer !== 'undefined' && Buffer.isBuffer(value);
-};
+  return typeof Buffer !== 'undefined' && Buffer.isBuffer(value)
+}
 
 /**
  * Check if value is a valid URL string
@@ -343,14 +343,14 @@ const isBuffer = value => {
  * @returns {boolean}
  */
 const isURL = value => {
-  if (!isString(value)) return false;
+  if (!isString(value)) return false
   try {
-    new URL(value);
-    return true;
+    new URL(value)
+    return true
   } catch {
-    return false;
+    return false
   }
-};
+}
 
 /**
  * Check if value is a valid email string
@@ -358,10 +358,10 @@ const isURL = value => {
  * @returns {boolean}
  */
 const isEmail = value => {
-  if (!isString(value)) return false;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(value);
-};
+  if (!isString(value)) return false
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(value)
+}
 
 /**
  * Check if value is a valid JSON string
@@ -369,14 +369,14 @@ const isEmail = value => {
  * @returns {boolean}
  */
 const isJSON = value => {
-  if (!isString(value)) return false;
+  if (!isString(value)) return false
   try {
-    JSON.parse(value);
-    return true;
+    JSON.parse(value)
+    return true
   } catch {
-    return false;
+    return false
   }
-};
+}
 
 // Export all functions
 export {
@@ -416,7 +416,7 @@ export {
   isURL,
   isEmail,
   isJSON,
-};
+}
 
 // Default export as object for flexible imports
 const TypeCheck = {
@@ -456,6 +456,6 @@ const TypeCheck = {
   isURL,
   isEmail,
   isJSON,
-};
+}
 
-export default TypeCheck;
+export default TypeCheck

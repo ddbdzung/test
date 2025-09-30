@@ -1,0 +1,32 @@
+{
+  "recommendations": [
+    // Essential for JavaScript development
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+
+    // Path IntelliSense for @/ aliases
+    "christian-kohler.path-intellisense",
+
+    // Node.js development
+    "ms-vscode.vscode-json",
+    "formulahendry.auto-rename-tag",
+
+    // Git & Version Control
+    "eamodio.gitlens",
+
+    // Productivity & UX
+    "aaron-bond.better-comments",
+    "streetsidesoftware.code-spell-checker",
+    "ms-vscode.vscode-js-profile-flame"
+  ],
+  "unwantedRecommendations": [
+    // TypeScript extensions (not needed for JS project)
+    "ms-vscode.vscode-typescript-next",
+    "ms-vscode.typescript-importer",
+
+    // React/Vue extensions (if not used)
+    "ms-vscode.vscode-react-refactor",
+    "octref.vscode"
+  ]
+}
