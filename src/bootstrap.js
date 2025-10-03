@@ -1,1 +1,1 @@
-import '@/helpers/validator.helper'
+import '@/configs/app.config'

@@ -24,6 +24,7 @@ module.exports = {
         alias: {
           '@/core': './src/core',
           '@/config': './src/config',
+          '@/configs': './src/configs',
           '@/constants': './src/core/constants',
           '@/helpers': './src/core/helpers',
           '@/utils': './src/core/utils',

@@ -34,3 +34,21 @@ export const ensureObject = (val, defaultValue = {}) => {
 
   return isObject(val) ? val : defaultValue
 }
+
+export const merge = (target, ...sources) => {
+  for (const source of sources) {
+    if (!isObject(source)) continue
+
+    for (const key of Object.keys(source)) {
+      const sourceValue = source[key]
+      const targetValue = target[key]
+
+      if (isObject(sourceValue) && isObject(targetValue)) {
+        target[key] = merge({}, targetValue, sourceValue)
+      } else {
+        target[key] = sourceValue
+      }
+    }
+  }
+  return target
+}
