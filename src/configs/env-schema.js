@@ -5,11 +5,8 @@ import { ENVIRONMENT, LOG_LEVEL } from '@/core/constants/common.constant'
 import { Joi, validate } from '@/core/helpers/validator.helper'
 
 config({
-  path: path.join(__dirname, '..', '..', '.env'),
-  example: path.join(__dirname, '..', '..', '.env'),
-}).error(error => {
-  console.error(error)
-  process.exit(1)
+  path: path.join(process.cwd(), '.env'),
+  example: path.join(process.cwd(), '.env.example'),
 })
 
 /**
@@ -18,13 +15,10 @@ config({
  * Follows validation-first philosophy with Joi
  */
 
-const envList = Object.values(ENVIRONMENT)
-const logLevelList = Object.values(LOG_LEVEL)
-
 const envSchema = Joi.object({
   // === Core Configuration ===
   NODE_ENV: Joi.string()
-    .valid(...envList)
+    .valid(...Object.values(ENVIRONMENT))
     .default(ENVIRONMENT.DEVELOPMENT),
 
   // === Ports ===
@@ -37,7 +31,7 @@ const envSchema = Joi.object({
   API_ROOT: Joi.string().allow('').default(''),
 
   // === Service Configuration ===
-  SERVICE: Joi.string().required(),
+  SERVICE: Joi.string().required(), //
   SERVICE_TOKEN: Joi.string().required(),
   MASTER_KEY: Joi.string().required(),
   API_ENDPOINT: Joi.string().uri().required(),
@@ -71,11 +65,12 @@ const envSchema = Joi.object({
 
   // === Logging ===
   LOG_LEVEL: Joi.string()
-    .valid(...logLevelList)
-    .default('info'),
+    .valid(...Object.values(LOG_LEVEL))
+    .default(LOG_LEVEL.INFO),
 })
   .unknown(true) // Allow other env vars but don't validate them
   .prefs({
+    abortEarly: false,
     stripUnknown: false, // Keep unknown env vars in process.env
   })
 
@@ -83,6 +78,15 @@ const envSchema = Joi.object({
  * Validate and parse environment variables
  * Throws error if validation fails (fail-fast approach)
  */
-const parsedEnv = validate(envSchema, process.env)
+let parsedEnv = {}
+try {
+  parsedEnv = validate(envSchema, process.env)
+} catch (error) {
+  console.error(
+    '[env-schema] Error validating environment variables:',
+    error?.message
+  )
+  process.exit(1)
+}
 
 export default parsedEnv

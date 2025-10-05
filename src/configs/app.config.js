@@ -40,8 +40,8 @@ const config = {
 
     // Ports
     port: env.PORT,
-    portQueue: env.PORT_QUEUE,
-    portSocket: env.PORT_SOCKET,
+    // portQueue: env.PORT_QUEUE,
+    // portSocket: env.PORT_SOCKET,
 
     // Network
     ip: env.IP,

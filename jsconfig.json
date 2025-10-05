@@ -31,7 +31,7 @@
     "skipLibCheck": true,
 
     // Type checking strictness - balanced approach for gradual typing
-    "strict": true,
+    "strict": false,
     "noImplicitAny": false,
     "noImplicitReturns": false,
     "noImplicitThis": false,
