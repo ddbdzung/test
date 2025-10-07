@@ -1,110 +1,50 @@
 {
-  // ==========================================
-  // JAVASCRIPT PROJECT OPTIMIZED SETTINGS
-  // ==========================================
-
-  // ------------------
-  // ESLint Configuration
-  // ------------------
-  "eslint.validate": ["javascript"],
-  "eslint.run": "onType",
-  "eslint.format.enable": false, // Let Prettier handle formatting
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit",
-    "source.organizeImports": "explicit"
-  },
-
-  // ------------------
-  // JavaScript Language Support
-  // ------------------
+  // JavaScript/TypeScript IntelliSense
   "javascript.suggest.autoImports": true,
-  "javascript.suggest.includeAutomaticOptionalChainCompletions": true,
-  "javascript.inlayHints.parameterNames.enabled": "literals",
-  "javascript.inlayHints.variableTypes.enabled": false,
-  "javascript.inlayHints.functionLikeReturnTypes.enabled": false,
-  "javascript.preferences.importModuleSpecifier": "relative",
-  "javascript.suggest.completeFunctionCalls": true,
+  "javascript.suggest.paths": true,
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+  "javascript.preferences.importModuleSpecifierEnding": "auto",
 
-  // ------------------
-  // File Associations & Formatting
-  // ------------------
-  "files.associations": {
-    "*.js": "javascript",
-    "*.mjs": "javascript",
-    ".env*": "properties",
-    "*.config.js": "javascript"
-  },
-  "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
-    }
-  },
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-
-  // ------------------
-  // Prettier Configuration
-  // ------------------
-  "prettier.enable": true,
-  "editor.formatOnSave": true,
-  "prettier.requireConfig": true,
-
-  // ------------------
-  // Node.js Development
-  // ------------------
-  "npm.packageManager": "pnpm",
-  "emmet.includeLanguages": {
-    "javascript": "javascriptreact"
-  },
-
-  // ------------------
-  // Editor Enhancements
-  // ------------------
-  "editor.suggest.insertMode": "replace",
-  "editor.acceptSuggestionOnCommitCharacter": false,
-  "editor.tabCompletion": "on",
-  "editor.parameterHints.enabled": true,
-  "editor.wordWrap": "on",
-  "editor.minimap.enabled": false,
-
-  // ------------------
-  // Path IntelliSense (for @/ aliases)
-  // ------------------
+  "javascript.validate.enable": false,
+  "typescript.validate.enable": false,
+  
+  // Path IntelliSense configuration
   "path-intellisense.mappings": {
-    "@/core": "${workspaceRoot}/src/core",
-    "@/config": "${workspaceRoot}/src/config",
-    "@/constants": "${workspaceRoot}/src/core/constants",
-    "@/helpers": "${workspaceRoot}/src/core/helpers",
-    "@/utils": "${workspaceRoot}/src/core/utils"
+    "@": "${workspaceFolder}/src",
+    "@/core": "${workspaceFolder}/src/core",
+    "@/configs": "${workspaceFolder}/src/configs",
+    "@/helpers": "${workspaceFolder}/src/core/helpers",
+    "@/utils": "${workspaceFolder}/src/core/utils",
+    "@/constants": "${workspaceFolder}/src/core/constants",
+    "@/framework": "${workspaceFolder}/src/framework",
+    "@/modules": "${workspaceFolder}/src/modules"
   },
-
-  // ------------------
-  // Performance & Exclude Patterns
-  // ------------------
+  
+  // Auto import suggestions - ưu tiên local files
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  
+  // IntelliSense preferences
+  "editor.suggest.localityBonus": true,
+  "editor.suggest.showWords": false,
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": true
+  },
+  
+  // Files to exclude from search/suggestions
   "files.exclude": {
     "**/node_modules": true,
     "**/dist": true,
     "**/coverage": true,
-    "**/.nyc_output": true,
-    "**/logs": true
+    "**/.git": true
   },
+  
+  // Search exclude
   "search.exclude": {
     "**/node_modules": true,
     "**/dist": true,
     "**/coverage": true,
-    "pnpm-lock.yaml": true
-  },
-  "files.watcherExclude": {
-    "**/node_modules/**": true,
-    "**/dist/**": true,
-    "**/coverage/**": true
-  },
-
-  // ------------------
-  // TypeScript Services (minimal for JS support)
-  // ------------------
-  "typescript.disableAutomaticTypeAcquisition": true,
-  "typescript.tsserver.experimental.enableProjectDiagnostics": false
+    "**/.git": true
+  }
 }

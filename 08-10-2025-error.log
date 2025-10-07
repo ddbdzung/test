@@ -1,0 +1,1 @@
+{"caller":{"file":"configs/app.config.js","filePath":"Object.<anonymous> (/home/ddbdzung/Workspace/expressjs/src/configs/app.config.js","line":"94"},"environment":"development","level":"info","message":"Application configuration loaded { environment: 'development', port: 6900 }","ms":"+0ms","port":6900,"timestamp":"2025-10-08 01:40:32"}

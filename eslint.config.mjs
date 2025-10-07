@@ -32,6 +32,7 @@ export default [
             ['@/constants', './src/core/constants'],
             ['@/helpers', './src/core/helpers'],
             ['@/utils', './src/core/utils'],
+            ['@/framework', './src/framework'],
           ],
           extensions: ['.js', '.mjs', '.json'],
         },

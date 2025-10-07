@@ -1,4 +1,5 @@
 /* eslint-disable security/detect-object-injection */
+import { isDangerousKey } from './security.util'
 import { isObject } from './type-check.util'
 
 export const pick = (obj, keys) => {
@@ -40,10 +41,14 @@ export const merge = (target, ...sources) => {
     if (!isObject(source)) continue
 
     for (const key of Object.keys(source)) {
+      // Skip dangerous keys to prevent prototype pollution at all levels
+      if (isDangerousKey(key)) continue
+
       const sourceValue = source[key]
       const targetValue = target[key]
 
       if (isObject(sourceValue) && isObject(targetValue)) {
+        // Recursively merge - dangerous keys will be filtered at each level
         target[key] = merge({}, targetValue, sourceValue)
       } else {
         target[key] = sourceValue

@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     // JavaScript checking and allowance - keeping flexible for ExpressJS development
-    "checkJs": true,
+    "checkJs": false,
     "allowJs": true,
 
     // Unused variable handling - align with ESLint's approach
@@ -14,7 +14,7 @@
 
     // Module system - align with ESLint's ES module approach
     "module": "ESNext", // Changed from commonjs to support ES modules
-    "moduleResolution": "node",
+    "moduleResolution": "bundler", // Better for path aliases
     "types": ["node"],
 
     // Import/export compatibility - essential for modern JavaScript
@@ -51,13 +51,16 @@
 
     // Path mapping for better import organization
     "paths": {
+      "@/*": ["./*"],
       "@/core/*": ["core/*"],
       "@/config/*": ["config/*"],
       "@/configs/*": ["configs/*"],
       "@/services/*": ["services/*"],
       "@/constants/*": ["core/constants/*"],
       "@/helpers/*": ["core/helpers/*"],
-      "@/utils/*": ["core/utils/*"]
+      "@/utils/*": ["core/utils/*"],
+      "@/framework/*": ["framework/*"],
+      "@/modules/*": ["modules/*"]
     }
   },
 

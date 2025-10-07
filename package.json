@@ -41,12 +41,16 @@
     "@babel/preset-env": "^7.28.0",
     "@babel/runtime": "^7.27.6",
     "@joi/date": "^2.1.1",
+    "@types/express": "^5.0.3",
     "babel-plugin-transform-remove-console": "^6.9.4",
     "core-js": "^3.44.0",
     "cross-env": "^7.0.3",
     "dotenv-safe": "^9.1.0",
+    "express": "^5.1.0",
     "joi": "^18.0.1",
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "winston": "^3.18.3",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@babel/node": "^7.28.0",

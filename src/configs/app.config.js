@@ -1,8 +1,7 @@
+import logger from '@/helpers/logger.helper'
 import path from 'path'
 
-import { merge } from '@/core/utils/common.util'
-
-// import logger from '@/services/logger'
+import { merge } from '@/utils/common.util'
 
 // Import validated environment variables
 import env from './env-schema'
@@ -32,7 +31,7 @@ import env from './env-schema'
 /**
  * Configuration structure organized by environment
  */
-const config = {
+const rawConfig = {
   // === Shared configuration across all environments ===
   all: {
     env: env.NODE_ENV,
@@ -40,18 +39,8 @@ const config = {
 
     // Ports
     port: env.PORT,
-    // portQueue: env.PORT_QUEUE,
-    // portSocket: env.PORT_SOCKET,
 
-    // Network
-    ip: env.IP,
     apiRoot: env.API_ROOT,
-
-    // Service
-    service: env.SERVICE,
-    serviceToken: env.SERVICE_TOKEN,
-    masterKey: env.MASTER_KEY,
-    apiEndpoint: env.API_ENDPOINT,
 
     // Security
     jwtSecret: env.JWT_SECRET,
@@ -59,39 +48,16 @@ const config = {
     // Redis
     redis: {
       uri: env.REDIS_URI,
-      adapterUri: env.REDIS_ADAPTER_URI,
     },
 
     // MongoDB Connections
     mongo: {
       connections: {
-        dashboard: {
+        main: {
           uri: env.MONGODB_URI,
           options: {},
         },
       },
-    },
-
-    // Elasticsearch Connections
-    elasticsearch: {
-      connections: {
-        dashboard: {
-          node: env.ELASTICSEARCH_URI,
-          isDefault: true,
-        },
-        loyalty: {
-          node: env.ELASTICSEARCH_LOYALTY_URI,
-        },
-      },
-    },
-
-    // Kafka Configuration
-    kafka: {
-      clientId: env.KAFKA_CLIENTID,
-      brokers: [env.KAFKA_BROKER],
-      mechanism: env.KAFKA_MECHANISM,
-      username: env.KAFKA_USERNAME,
-      password: env.KAFKA_PASSWORD,
     },
   },
 
@@ -123,12 +89,11 @@ const config = {
 }
 
 // Merge base config with environment-specific config
-const mergedConfig = merge(config.all, config[config.all.env])
+const config = merge(rawConfig.all, rawConfig[rawConfig.all.env])
 
-// logger.info('Application configuration loaded', {
-//   environment: mergedConfig.env,
-//   port: mergedConfig.port,
-//   service: mergedConfig.service,
-// })
+logger.info('Application configuration loaded', {
+  environment: config.env,
+  port: config.port,
+})
 
-export default mergedConfig
+export default config

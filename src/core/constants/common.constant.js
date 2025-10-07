@@ -2,6 +2,7 @@ export const ENVIRONMENT = {
   DEVELOPMENT: 'development', // Local machine maybe
   PRODUCTION: 'production',
   TEST: 'test',
+  STAGING: 'staging',
 }
 
 export const APP_NAME = {
@@ -15,21 +16,8 @@ export const API_PREFIX = 'api'
 /**
  * Standardized logging levels based on best practices.
  * Used to classify the severity and verbosity of log messages.
- *
- * Recommended usage by environment:
- * - Local/Dev: TRACE, DEBUG, INFO
- * - Staging:   INFO, WARN, ERROR
- * - Production: INFO, WARN, ERROR, FATAL
  */
 export const LOG_LEVEL = {
-  /**
-   * TRACE – most detailed level
-   * - Use for step-by-step debugging (loops, raw payloads, lifecycle)
-   * - Usually enabled only locally for deep debugging
-   * - Should NOT be enabled in production (too noisy)
-   */
-  TRACE: 'trace',
-
   /**
    * DEBUG – developer-focused debugging
    * - Use for tracking state, parameters, internal flow
@@ -44,14 +32,6 @@ export const LOG_LEVEL = {
    * - Usually always enabled in production for business insights
    */
   INFO: 'info',
-
-  /**
-   * NOTICE – optional, between INFO and WARN
-   * - Use for noteworthy but non-problem events
-   *   (e.g., config reload, cache warmed up)
-   * - Can be omitted if you prefer a simpler set
-   */
-  NOTICE: 'notice',
 
   /**
    * WARN – warnings
@@ -70,18 +50,14 @@ export const LOG_LEVEL = {
   ERROR: 'error',
 
   /**
-   * CRITICAL – severe errors, worse than ERROR but not system-wide failure
-   * - A major part of the system is degraded
-   *   (e.g., lost a DB shard, Kafka consumer down on one partition)
-   * - Usually triggers high-priority alerts
+   * VERBOSE – detailed info for tracing complex flows
+   * - Use for tracing complex flows (e.g., database query results)
    */
-  CRITICAL: 'critical',
+  VERBOSE: 'verbose',
 
   /**
-   * FATAL – system cannot continue
-   * - Irrecoverable error, service must shut down
-   *   (e.g., DB unreachable, corrupted configuration)
-   * - Should trigger immediate alerts (PagerDuty, SMS, etc.)
+   * HTTP – HTTP-specific events
+   * - Use for HTTP-specific events (e.g., request logs, status codes, latency)
    */
-  FATAL: 'fatal',
+  HTTP: 'http',
 }
