@@ -185,6 +185,12 @@ const commonFormats = [
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
 ]
 
+/** Format cho file - loại bỏ caller để giảm kích thước */
+const fileFormat = winston.format(info => {
+  const { caller: _caller, ...rest } = info
+  return rest
+})
+
 /** Logger setup */
 const logger = winston.createLogger({
   silent: isTestEnv,
@@ -195,7 +201,7 @@ const logger = winston.createLogger({
       filename: '%DATE%-error.log',
       dirname: path.join(process.cwd(), 'logs'),
       level: getFileLogLevel(env),
-      format: winston.format.json(),
+      format: winston.format.combine(fileFormat(), winston.format.json()),
       datePattern: 'DD-MM-YYYY',
       maxFiles: '7d',
     }),
