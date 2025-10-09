@@ -1,4 +1,4 @@
-import { ENVIRONMENT } from '../constants/common.constant'
+import { CURRENT_ENV, ENVIRONMENT } from '../constants/common.constant'
 import {
   HTTP_STATUS,
   HTTP_STATUS_MESSAGE,
@@ -7,16 +7,48 @@ import {
 } from '../constants/http-status.constant'
 
 /**
+ * @typedef {Object} BaseErrorOptions
+ * @property {number} [statusCode] - HTTP status code (e.g., 400, 500). Default: 500
+ * @property {string} [code] - Error code string (e.g., 'VALIDATION_ERROR'). Default: HTTP status message code
+ * @property {boolean} [isOperational=true] - true: Operational error (expected), false: Programming error (bug)
+ * @property {Object} [context] - Additional context data for debugging (e.g., { userId: 123, action: 'login' })
+ * @property {Object} [metadata] - Additional metadata to merge with defaults (timestamp, environment)
+ * @property {Error} [cause] - Original error that caused this error (for error chaining)
+ */
+
+/**
  * BaseError - Following Node.js Error Handling Best Practices.
  * Phân biệt rõ Operational Errors vs Programming Errors
  *
  * Operational Errors: Expected errors trong business flow (invalid input, network timeout,...).
  * Programming Errors: Bugs (null reference, type mismatch,...)
+ *
+ * @class
+ * @extends Error
+ * @example
+ * // Basic usage
+ * throw new BaseError('Something went wrong', {
+ *   statusCode: 500,
+ *   context: { userId: 123 }
+ * });
+ *
+ * @example
+ * // With error chaining
+ * try {
+ *   await database.query()
+ * } catch (err) {
+ *   throw new BaseError('Database query failed', {
+ *     statusCode: 500,
+ *     cause: err,
+ *     context: { query: 'SELECT * FROM users' }
+ *   });
+ * }
  */
 export class BaseError extends Error {
   /**
-   * @param {string} message
-   * @param {object} options
+   * Creates a new BaseError instance
+   * @param {string} message - Error message to display
+   * @param {BaseErrorOptions} [options={}] - Error configuration options
    */
   constructor(message, options = {}) {
     super(message)
@@ -26,17 +58,10 @@ export class BaseError extends Error {
     this.message = message
 
     // HTTP context
-    if (options.statusCode) {
-      const { statusCode, statusCodeMessage, message } =
-        getHttpStatusMessageCode(options.statusCode)
-      this.statusCode = statusCode
-      this.code = statusCodeMessage
-      this.message = message
-    } else {
-      this.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR
-      this.code = HTTP_STATUS_MESSAGE_CODE.INTERNAL_SERVER_ERROR
-      this.message = HTTP_STATUS_MESSAGE.INTERNAL_SERVER_ERROR
-    }
+    this.statusCode = options.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR
+    this.code =
+      options.code ||
+      getHttpStatusMessageCode(this.statusCode).statusCodeMessage
 
     // Error classification
     this.isOperational = options.isOperational ?? true // true: Operational Errors, false: Programming Errors
@@ -45,7 +70,7 @@ export class BaseError extends Error {
     this.context = options.context || {} // User-provided context
     this.metadata = {
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
+      environment: CURRENT_ENV,
       ...options.metadata,
     }
 
@@ -60,6 +85,7 @@ export class BaseError extends Error {
 
   /**
    * Get full error chain (this error + all causes)
+   * @returns {Error[]} Array of errors from this error to root cause
    */
   getErrorChain() {
     const chain = [this]
@@ -75,6 +101,16 @@ export class BaseError extends Error {
 
   /**
    * Serialize to JSON object format (for logging/API response)
+   * @returns {Object} Error object with all properties serialized
+   * @returns {string} return.name - Error class name
+   * @returns {string} return.code - Error code
+   * @returns {string} return.message - Error message
+   * @returns {number} return.statusCode - HTTP status code
+   * @returns {boolean} return.isOperational - Whether error is operational
+   * @returns {Object} return.context - Error context data
+   * @returns {Object} return.metadata - Error metadata
+   * @returns {string} [return.stack] - Stack trace (non-production only)
+   * @returns {Object} [return.cause] - Serialized cause error (non-production only)
    */
   toJSON() {
     const base = {
@@ -88,7 +124,7 @@ export class BaseError extends Error {
     }
 
     // Include stack in non-production environments
-    if (process.env.NODE_ENV !== ENVIRONMENT.PRODUCTION) {
+    if (CURRENT_ENV !== ENVIRONMENT.PRODUCTION) {
       base.stack = this.stack
       if (this.cause) {
         base.cause =
@@ -105,12 +141,26 @@ export class BaseError extends Error {
 // ============= Specific Error Classes =============
 
 /**
- * Client errors (4xx) - Operational
+ * @typedef {Object} ValidationErrorDetail
+ * @property {string} field - Field name that failed validation
+ * @property {string} message - Validation error message
+ * @property {*} [value] - Invalid value that was provided
+ */
+
+/**
+ * ValidationError - For request validation failures (4xx)
+ * @class
+ * @extends BaseError
+ * @example
+ * throw new ValidationError('Validation failed', [
+ *   { field: 'email', message: 'Invalid email format', value: 'not-an-email' },
+ *   { field: 'age', message: 'Must be greater than 0', value: -5 }
+ * ]);
  */
 export class ValidationError extends BaseError {
   /**
-   * @param {string} message
-   * @param {object[]} validationErrors
+   * @param {string} message - Error message
+   * @param {ValidationErrorDetail[]} [validationErrors=[]] - Array of validation error details
    */
   constructor(message, validationErrors = []) {
     super(message, {
@@ -122,7 +172,19 @@ export class ValidationError extends BaseError {
   }
 }
 
+/**
+ * NotFoundError - For resource not found errors (404)
+ * @class
+ * @extends BaseError
+ * @example
+ * throw new NotFoundError('User', 123);
+ * // Error message: "User not found", context: { resource: 'User', identifier: 123 }
+ */
 export class NotFoundError extends BaseError {
+  /**
+   * @param {string} [resource='Resource'] - Name of the resource that was not found
+   * @param {string|number|null} [identifier=null] - ID or identifier of the resource
+   */
   constructor(resource = 'Resource', identifier = null) {
     super(`${resource} not found`, {
       statusCode: HTTP_STATUS.NOT_FOUND,
@@ -133,7 +195,15 @@ export class NotFoundError extends BaseError {
   }
 }
 
+/**
+ * UnauthorizedError - For authentication failures (401)
+ * @class
+ * @extends BaseError
+ */
 export class UnauthorizedError extends BaseError {
+  /**
+   * @param {string} [message='Authentication required'] - Error message
+   */
   constructor(message = 'Authentication required') {
     super(message, {
       statusCode: HTTP_STATUS.UNAUTHORIZED,
@@ -143,7 +213,15 @@ export class UnauthorizedError extends BaseError {
   }
 }
 
+/**
+ * ForbiddenError - For authorization failures (403)
+ * @class
+ * @extends BaseError
+ */
 export class ForbiddenError extends BaseError {
+  /**
+   * @param {string} [message='Access denied'] - Error message
+   */
   constructor(message = 'Access denied') {
     super(message, {
       statusCode: HTTP_STATUS.FORBIDDEN,
@@ -153,10 +231,15 @@ export class ForbiddenError extends BaseError {
   }
 }
 
+/**
+ * ConflictError - For resource conflicts (409)
+ * @class
+ * @extends BaseError
+ */
 export class ConflictError extends BaseError {
   /**
-   * @param {string} message
-   * @param {object} conflictDetails
+   * @param {string} message - Error message
+   * @param {Object} [conflictDetails={}] - Details about the conflict
    */
   constructor(message, conflictDetails = {}) {
     super(message, {
@@ -168,10 +251,15 @@ export class ConflictError extends BaseError {
   }
 }
 
+/**
+ * BadRequestError - For bad request errors (400)
+ * @class
+ * @extends BaseError
+ */
 export class BadRequestError extends BaseError {
   /**
-   * @param {string} message
-   * @param {object} details
+   * @param {string} message - Error message
+   * @param {Object} [details={}] - Additional error details
    */
   constructor(message, details = {}) {
     super(message, {
@@ -183,10 +271,15 @@ export class BadRequestError extends BaseError {
   }
 }
 
+/**
+ * TooManyRequestsError - For rate limiting (429)
+ * @class
+ * @extends BaseError
+ */
 export class TooManyRequestsError extends BaseError {
   /**
-   * @param {string} message
-   * @param {object} context
+   * @param {string} message - Error message
+   * @param {Object} [context={}] - Additional context (e.g., rate limit info)
    */
   constructor(message, context = {}) {
     super(message, {
@@ -199,9 +292,15 @@ export class TooManyRequestsError extends BaseError {
 }
 
 /**
- * Server errors (5xx)
+ * InternalServerError - For internal server errors (500)
+ * @class
+ * @extends BaseError
  */
 export class InternalServerError extends BaseError {
+  /**
+   * @param {string} [message='Internal server error'] - Error message
+   * @param {Error|null} [cause=null] - Original error that caused this
+   */
   constructor(message = 'Internal server error', cause = null) {
     super(message, {
       statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
@@ -212,7 +311,16 @@ export class InternalServerError extends BaseError {
   }
 }
 
+/**
+ * ServiceUnavailableError - For service unavailable errors (503)
+ * @class
+ * @extends BaseError
+ */
 export class ServiceUnavailableError extends BaseError {
+  /**
+   * @param {string} [service='Service'] - Name of the unavailable service
+   * @param {Error|null} [cause=null] - Original error that caused this
+   */
   constructor(service = 'Service', cause = null) {
     super(`${service} is currently unavailable`, {
       statusCode: HTTP_STATUS.SERVICE_UNAVAILABLE,
@@ -225,13 +333,21 @@ export class ServiceUnavailableError extends BaseError {
 }
 
 /**
- * Business logic errors
+ * BusinessError - For custom business logic errors
+ * @class
+ * @extends BaseError
+ * @example
+ * throw new BusinessError(
+ *   'Insufficient balance',
+ *   'INSUFFICIENT_BALANCE',
+ *   { balance: 100, required: 500 }
+ * );
  */
 export class BusinessError extends BaseError {
   /**
-   * @param {string} message
-   * @param {string} errorCode
-   * @param {object} context
+   * @param {string} message - Error message
+   * @param {string} errorCode - Custom business error code
+   * @param {Object} [context={}] - Business context data
    */
   constructor(message, errorCode, context = {}) {
     super(message, {

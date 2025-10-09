@@ -61,3 +61,17 @@ export const LOG_LEVEL = {
    */
   HTTP: 'http',
 }
+
+/**
+ * Single source of truth for current environment
+ */
+export const CURRENT_ENV = process.env.NODE_ENV || ENVIRONMENT.DEVELOPMENT
+
+/**
+ * Timeout definitions in milliseconds
+ */
+export const TIMEOUT_CONTROLLER = {
+  DEFAULT: 10_000,
+  HEAVY_PROCESS: 20_000,
+  ENQUEUE_PROCESS: 5_000,
+}

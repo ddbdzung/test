@@ -57,3 +57,10 @@ export const merge = (target, ...sources) => {
   }
   return target
 }
+
+/**
+ * Sleeps for a given number of milliseconds
+ * @param {number} ms - The number of milliseconds to sleep
+ * @returns {Promise<void>} A promise that resolves after the given number of milliseconds
+ */
+export const snooze = ms => new Promise(resolve => setTimeout(resolve, ms))

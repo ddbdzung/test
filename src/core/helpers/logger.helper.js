@@ -1,13 +1,16 @@
-import { ENVIRONMENT, LOG_LEVEL } from '@/constants/common.constant.js'
+import {
+  CURRENT_ENV,
+  ENVIRONMENT,
+  LOG_LEVEL,
+} from '@/constants/common.constant.js'
 import path from 'path'
 import util from 'util'
 import winston from 'winston'
 import 'winston-daily-rotate-file'
 
-const env = process.env.NODE_ENV || ENVIRONMENT.DEVELOPMENT
 const defaultLogLevel = LOG_LEVEL.INFO
-const isTestEnv = env === ENVIRONMENT.TEST
-const isProductionEnv = env === ENVIRONMENT.PRODUCTION
+const isTestEnv = CURRENT_ENV === ENVIRONMENT.TEST
+const isProductionEnv = CURRENT_ENV === ENVIRONMENT.PRODUCTION
 const ENABLE_CALLER_TRACKING = !isProductionEnv
 
 // Cached patterns cho performance
@@ -102,17 +105,17 @@ function formatArgument(arg) {
 }
 
 /** Lấy log level tùy theo env */
-function getConsoleLogLevel(env) {
-  if (env === ENVIRONMENT.PRODUCTION) return LOG_LEVEL.INFO
-  if (env === ENVIRONMENT.DEVELOPMENT) return LOG_LEVEL.DEBUG
-  if (env === ENVIRONMENT.STAGING) return LOG_LEVEL.VERBOSE
+function getConsoleLogLevel(CURRENT_ENV) {
+  if (CURRENT_ENV === ENVIRONMENT.PRODUCTION) return LOG_LEVEL.INFO
+  if (CURRENT_ENV === ENVIRONMENT.DEVELOPMENT) return LOG_LEVEL.DEBUG
+  if (CURRENT_ENV === ENVIRONMENT.STAGING) return LOG_LEVEL.VERBOSE
   return defaultLogLevel
 }
 
-function getFileLogLevel(env) {
-  if (env === ENVIRONMENT.PRODUCTION) return LOG_LEVEL.ERROR
-  if (env === ENVIRONMENT.DEVELOPMENT) return LOG_LEVEL.DEBUG
-  if (env === ENVIRONMENT.STAGING) return LOG_LEVEL.VERBOSE
+function getFileLogLevel(CURRENT_ENV) {
+  if (CURRENT_ENV === ENVIRONMENT.PRODUCTION) return LOG_LEVEL.ERROR
+  if (CURRENT_ENV === ENVIRONMENT.DEVELOPMENT) return LOG_LEVEL.DEBUG
+  if (CURRENT_ENV === ENVIRONMENT.STAGING) return LOG_LEVEL.VERBOSE
   return defaultLogLevel
 }
 
@@ -200,14 +203,14 @@ const logger = winston.createLogger({
     new winston.transports.DailyRotateFile({
       filename: '%DATE%-error.log',
       dirname: path.join(process.cwd(), 'logs'),
-      level: getFileLogLevel(env),
+      level: getFileLogLevel(CURRENT_ENV),
       format: winston.format.combine(fileFormat(), winston.format.json()),
       datePattern: 'DD-MM-YYYY',
       maxFiles: '7d',
     }),
     new winston.transports.Console({
       silent: isTestEnv,
-      level: getConsoleLogLevel(env),
+      level: getConsoleLogLevel(CURRENT_ENV),
       stderrLevels: [LOG_LEVEL.ERROR],
       format: consoleFormat,
     }),
