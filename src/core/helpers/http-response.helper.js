@@ -28,9 +28,10 @@ export class HttpResponse {
   toJSON() {
     return {
       success: this.success,
+      statusCode: this.statusCode,
       data: this.data,
       message: this.message,
-      metadata: this.metadata,
+      meta: this.metadata,
       timestamp: this.timestamp,
     }
   }
