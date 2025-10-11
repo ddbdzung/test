@@ -46,7 +46,7 @@ const controllerFn = async (req, res, next) => {
     params: req.params,
   })
 
-  await snooze(13000)
+  await snooze(3000)
   res.json({
     query: req.query,
     body: req.body,
@@ -57,7 +57,7 @@ const controllerFn = async (req, res, next) => {
 app.post(
   '/',
   requestValidator(schema, { removeUnknown: false }),
-  wrapController(controllerFn, { timeout: 2000 })
+  wrapController(controllerFn)
 )
 
 app.use((err, req, res, next) => {
