@@ -3,6 +3,7 @@ import {
   ENVIRONMENT,
   LOG_LEVEL,
 } from '@/constants/common.constant.js'
+import { requestContextHelper } from '@/framework/helpers/request-context.helper'
 import path from 'path'
 import util from 'util'
 import winston from 'winston'
@@ -26,6 +27,7 @@ const COLOR = {
   YELLOW: '\x1b[33m',
   RESET: '\x1b[0m',
   GRAY: '\x1b[90m',
+  BLUE: '\x1b[34m',
 }
 
 const COLOR_BY_LEVEL = {
@@ -33,6 +35,7 @@ const COLOR_BY_LEVEL = {
   [LOG_LEVEL.WARN]: COLOR.YELLOW,
   [LOG_LEVEL.INFO]: COLOR.GREEN,
   [LOG_LEVEL.DEBUG]: COLOR.CYAN,
+  [LOG_LEVEL.HTTP]: COLOR.BLUE,
 }
 
 /** Helper */
@@ -165,23 +168,35 @@ const consoleFormat = winston.format.printf(info => {
 
   const timestamp = colorizeText(info.timestamp, COLOR.GRAY)
   const ms = colorizeText(info.ms ?? '', COLOR.CYAN)
-  const callerInfo = info.caller
-    ? colorizeText(
-        `(${info.caller?.['file']}:${info.caller?.['line']})`,
-        COLOR.GRAY
-      ) + ' '
-    : ''
+  const callerInfo =
+    info.caller && info.level !== LOG_LEVEL.HTTP
+      ? colorizeText(
+          `(${info.caller?.['file']}:${info.caller?.['line']})`,
+          COLOR.GRAY
+        ) + ' '
+      : ''
 
-  const stackTrace = info.stack
-    ? '\n' + colorizeText(info.stack, COLOR.RED)
-    : ''
+  const stackTrace =
+    info.stack && info.level !== LOG_LEVEL.HTTP
+      ? '\n' + colorizeText(info.stack, COLOR.RED)
+      : ''
 
   return `[${timestamp} ${level}] ${callerInfo}${info.message} ${ms}${stackTrace}`
+})
+
+const contextFormat = winston.format(info => {
+  const requestId = requestContextHelper.getContextValue('requestId')
+  if (requestId) info.requestId = requestId
+  const userId = requestContextHelper.getContextValue('userId')
+  if (userId) info.userId = userId
+
+  return info
 })
 
 /** Build pipeline */
 const commonFormats = [
   errorFormat(),
+  contextFormat(),
   ...(ENABLE_CALLER_TRACKING ? [callerFormat()] : []),
   splatFormat(),
   winston.format.ms(),

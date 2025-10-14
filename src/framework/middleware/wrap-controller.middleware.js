@@ -18,6 +18,8 @@ export const wrapController = (controllerFn, options = {}) => {
   const { timeout = TIMEOUT_CONTROLLER.DEFAULT } = options
 
   return async (req, res, next) => {
+    if (res.headersSent) return next()
+
     try {
       const result = await Promise.race([
         controllerFn(req, res, next),
@@ -28,21 +30,21 @@ export const wrapController = (controllerFn, options = {}) => {
         }),
       ])
 
-      // Nếu controller đã gửi response
-      if (res.headersSent) return
-
       if (result instanceof HttpResponse) {
-        return res.status(result.statusCode).json(result.toJSON())
+        res.status(result.statusCode).json(result.toJSON())
+        return next()
       }
 
       if (result instanceof BaseError) {
         return next(result)
       }
 
-      if (result !== undefined) {
-        return res.json(new HttpResponse(result).toJSON())
+      if (result === undefined) {
+        res.json(new HttpResponse().toJSON())
+        return next()
       }
 
+      res.json(new HttpResponse(HTTP_STATUS.OK, result).toJSON())
       next()
     } catch (error) {
       next(error)

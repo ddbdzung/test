@@ -75,3 +75,5 @@ export const TIMEOUT_CONTROLLER = {
   HEAVY_PROCESS: 20_000,
   ENQUEUE_PROCESS: 5_000,
 }
+
+export const REQUEST_ID_KEY = 'X-Request-Id'

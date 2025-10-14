@@ -1,3 +1,6 @@
+import { requestContextHelper } from '@/framework/helpers/request-context.helper'
+import { requestContext } from '@/framework/middleware/request-context.middleware'
+import { requestLogger } from '@/framework/middleware/request-logger.middleware'
 import { requestValidator } from '@/framework/middleware/request-validator.middleware'
 import { wrapController } from '@/framework/middleware/wrap-controller.middleware'
 import express from 'express'
@@ -46,6 +49,9 @@ const controllerFn = async (req, res, next) => {
     params: req.params,
   })
 
+  const ctx = requestContextHelper.getContext()
+  console.log(ctx)
+
   await snooze(3000)
   res.json({
     query: req.query,
@@ -54,6 +60,13 @@ const controllerFn = async (req, res, next) => {
   })
 }
 
+app.use(
+  requestContext({
+    extractUserId: req => req.user?.id,
+  })
+)
+app.use(requestLogger)
+
 app.post(
   '/',
   requestValidator(schema, { removeUnknown: false }),
@@ -61,6 +74,8 @@ app.post(
 )
 
 app.use((err, req, res, next) => {
+  if (res.headersSent) return next()
+
   if (err instanceof BaseError) {
     console.log(err.toJSON())
     return res.status(err.statusCode).json(err.toJSON())
