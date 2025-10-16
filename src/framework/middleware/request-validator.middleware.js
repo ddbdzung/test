@@ -1,3 +1,7 @@
+import {
+  InternalServerError,
+  ValidationError,
+} from '@/core/helpers/error.helper'
 import { Joi } from '@/core/helpers/validator.helper'
 import { ensureObject, pick } from '@/core/utils/common.util'
 import { deepSanitize, isDangerousKey } from '@/core/utils/security.util'
@@ -91,71 +95,83 @@ export const requestValidator = (schema, options) => {
   /* eslint-disable security/detect-object-injection */
   // Safe: Object access is controlled by hardcoded requestKeys and dangerous keys are filtered
   return (req, _res, next) => {
-    const requestKeys = ['params', 'query', 'body']
-    const raw = pick(req, requestKeys)
-    const object = pick(raw, Object.keys(schema))
+    try {
+      const requestKeys = ['params', 'query', 'body']
+      const raw = pick(req, requestKeys)
+      const object = pick(raw, Object.keys(schema))
 
-    const { value, error } = Joi.compile(schema)
-      .prefs({ errors: { label: 'key' } })
-      .validate(object)
+      const { value, error } = Joi.compile(schema)
+        .prefs({ errors: { label: 'key' } })
+        .validate(object)
 
-    if (error) {
-      return next(error)
-    }
+      if (error) {
+        const details = error.details.map(d => ({
+          field: d.path.join('.'),
+          type: d.type,
+          message: d.message,
+        }))
 
-    // Helper function to safely set request properties (Express 5 compatible)
-    const setRequestProperty = (key, val) => {
-      if (isDangerousKey(key)) return
-
-      try {
-        // Try direct assignment first (Express 4)
-        req[key] = val
-      } catch {
-        // Express 5: Use Object.defineProperty to override read-only getters
-        Object.defineProperty(req, key, {
-          value: val,
-          writable: true,
-          enumerable: true,
-          configurable: true,
-        })
+        next(new ValidationError('Request validation failed', details))
+        return
       }
-    }
 
-    // Ensure base request properties exist
-    const valueKeys = Object.keys(value)
-    for (const key of requestKeys) {
-      if (valueKeys.includes(key)) {
-        continue
+      // Helper function to safely set request properties (Express 5 compatible)
+      const setRequestProperty = (key, val) => {
+        if (isDangerousKey(key)) return
+
+        try {
+          // Try direct assignment first (Express 4)
+          req[key] = val
+        } catch {
+          // Express 5: Use Object.defineProperty to override read-only getters
+          Object.defineProperty(req, key, {
+            value: val,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+          })
+        }
       }
-      setRequestProperty(key, {})
-    }
 
-    if (!options.removeUnknown) {
-      // Deep sanitize and assign all values
-      for (const key of Object.keys(value)) {
-        setRequestProperty(key, deepSanitize(value[key]))
+      // Ensure base request properties exist
+      const valueKeys = Object.keys(value)
+      for (const key of requestKeys) {
+        if (valueKeys.includes(key)) {
+          continue
+        }
+        setRequestProperty(key, {})
       }
-      return next()
-    }
 
-    // Filter unknown fields based on schema definitions
-    const filteredValue = {}
-
-    for (const key of requestKeys) {
-      const keySchema = schema[key]
-
-      if (keySchema && value[key] !== undefined) {
-        filteredValue[key] = pickDefinedKeys(keySchema, value[key])
-      } else {
-        filteredValue[key] = {}
+      if (!options.removeUnknown) {
+        // Deep sanitize and assign all values
+        for (const key of Object.keys(value)) {
+          setRequestProperty(key, deepSanitize(value[key]))
+        }
+        next()
+        return
       }
-    }
 
-    // Safely assign filtered values
-    for (const key of Object.keys(filteredValue)) {
-      setRequestProperty(key, filteredValue[key])
+      // Filter unknown fields based on schema definitions
+      const filteredValue = {}
+
+      for (const key of requestKeys) {
+        const keySchema = schema[key]
+
+        if (keySchema && value[key] !== undefined) {
+          filteredValue[key] = pickDefinedKeys(keySchema, value[key])
+        } else {
+          filteredValue[key] = {}
+        }
+      }
+
+      // Safely assign filtered values
+      for (const key of Object.keys(filteredValue)) {
+        setRequestProperty(key, filteredValue[key])
+      }
+      next()
+    } catch (error) {
+      next(new InternalServerError('Request validator unknown error', error))
     }
-    return next()
   }
   /* eslint-enable security/detect-object-injection */
 }

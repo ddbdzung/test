@@ -4,7 +4,7 @@ import { BaseError } from '@/core/helpers/error.helper'
 import { HttpResponse } from '@/core/helpers/http-response.helper'
 import { ensureObject, snooze } from '@/core/utils/common.util'
 
-export const wrapController = (controllerFn, options = {}) => {
+export const wrapController = (controllerFn, options) => {
   // Validate
   if (typeof controllerFn !== 'function') {
     throw new BaseError('Controller function is required', {
@@ -18,7 +18,10 @@ export const wrapController = (controllerFn, options = {}) => {
   const { timeout = TIMEOUT_CONTROLLER.DEFAULT } = options
 
   return async (req, res, next) => {
-    if (res.headersSent) return next()
+    if (res.headersSent) {
+      next()
+      return
+    }
 
     try {
       const result = await Promise.race([
@@ -32,21 +35,25 @@ export const wrapController = (controllerFn, options = {}) => {
 
       if (result instanceof HttpResponse) {
         res.status(result.statusCode).json(result.toJSON())
-        return next()
+        next()
+        return
       }
 
       if (result instanceof BaseError) {
-        return next(result)
+        next(result)
+        return
       }
 
       if (result === undefined) {
         res.json(new HttpResponse().toJSON())
-        return next()
+        next()
+        return
       }
 
       res.json(new HttpResponse(HTTP_STATUS.OK, result).toJSON())
       next()
     } catch (error) {
+      // Error thrown from controller fn so it's operational error
       next(error)
     }
   }

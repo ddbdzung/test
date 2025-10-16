@@ -1,7 +1,7 @@
 import { requestContextHelper } from '@/framework/helpers/request-context.helper'
 
 import { REQUEST_ID_KEY } from '@/core/constants/common.constant'
-import { BaseError } from '@/core/helpers/error.helper'
+import { BaseError, InternalServerError } from '@/core/helpers/error.helper'
 import { ensureObject } from '@/core/utils/common.util'
 
 /**
@@ -37,32 +37,36 @@ export const requestContext = options => {
   }
 
   return (req, res, next) => {
-    // Generate or use existing requestId
-    // eslint-disable-next-line security/detect-object-injection
-    const requestId =
-      req.headers[REQUEST_ID_KEY] || requestContextHelper.getRequestId()
+    try {
+      // Generate or use existing requestId
+      const requestId =
+        // eslint-disable-next-line security/detect-object-injection
+        req.headers[REQUEST_ID_KEY] || requestContextHelper.getRequestId()
 
-    // Build initial context
-    const context = {
-      requestId,
-      method: req.method,
-      url: req.originalUrl || req.url,
-      path: req.path,
-      ip: req.ip || req.connection.remoteAddress,
-      userAgent: req.headers['user-agent'],
-      startTime: Date.now(),
-      userId: extractUserId?.(req),
-      ...extractMetadata?.(req),
+      // Build initial context
+      const context = {
+        requestId,
+        method: req.method,
+        url: req.originalUrl || req.url,
+        path: req.path,
+        ip: req.ip || req.connection.remoteAddress,
+        userAgent: req.headers['user-agent'],
+        startTime: Date.now(),
+        userId: extractUserId?.(req),
+        ...extractMetadata?.(req),
+      }
+
+      // Attact requestId to request for ease access
+      req.requestId = requestId
+
+      // Set response header
+      res.setHeader(REQUEST_ID_KEY, requestId)
+
+      requestContextHelper.runWithContext(context, () => {
+        next()
+      })
+    } catch (error) {
+      next(new InternalServerError('Request context unknown error', error))
     }
-
-    // Attact requestId to request for ease access
-    req.requestId = requestId
-
-    // Set response header
-    res.setHeader(REQUEST_ID_KEY, requestId)
-
-    requestContextHelper.runWithContext(context, () => {
-      next()
-    })
   }
 }

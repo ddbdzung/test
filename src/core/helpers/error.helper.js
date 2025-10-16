@@ -1,8 +1,6 @@
 import { CURRENT_ENV, ENVIRONMENT } from '../constants/common.constant'
 import {
   HTTP_STATUS,
-  HTTP_STATUS_MESSAGE,
-  HTTP_STATUS_MESSAGE_CODE,
   getHttpStatusMessageCode,
 } from '../constants/http-status.constant'
 
@@ -25,6 +23,7 @@ import {
  *
  * @class
  * @extends Error
+ * @implements {import('../Throwable').Throwable}
  * @example
  * // Basic usage
  * throw new BaseError('Something went wrong', {
@@ -144,7 +143,7 @@ export class BaseError extends Error {
  * @typedef {Object} ValidationErrorDetail
  * @property {string} field - Field name that failed validation
  * @property {string} message - Validation error message
- * @property {*} [value] - Invalid value that was provided
+ * @property {*} [type] - Validation error type
  */
 
 /**
@@ -153,20 +152,20 @@ export class BaseError extends Error {
  * @extends BaseError
  * @example
  * throw new ValidationError('Validation failed', [
- *   { field: 'email', message: 'Invalid email format', value: 'not-an-email' },
- *   { field: 'age', message: 'Must be greater than 0', value: -5 }
+ *   { field: 'email', message: 'Invalid email format', type: 'string.email' },
+ *   { field: 'age', message: 'Must be greater than 0', type: 'number.min' }
  * ]);
  */
 export class ValidationError extends BaseError {
   /**
    * @param {string} message - Error message
-   * @param {ValidationErrorDetail[]} [validationErrors=[]] - Array of validation error details
+   * @param {ValidationErrorDetail[]} [details=[]] - Array of validation error details
    */
-  constructor(message, validationErrors = []) {
+  constructor(message, details = []) {
     super(message, {
-      statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      statusCode: HTTP_STATUS.BAD_REQUEST,
       code: 'VALIDATION_ERROR',
-      context: { errors: validationErrors },
+      context: { errors: details },
       isOperational: true,
     })
   }
@@ -246,26 +245,6 @@ export class ConflictError extends BaseError {
       statusCode: HTTP_STATUS.CONFLICT,
       code: 'CONFLICT',
       context: conflictDetails,
-      isOperational: true,
-    })
-  }
-}
-
-/**
- * BadRequestError - For bad request errors (400)
- * @class
- * @extends BaseError
- */
-export class BadRequestError extends BaseError {
-  /**
-   * @param {string} message - Error message
-   * @param {Object} [details={}] - Additional error details
-   */
-  constructor(message, details = {}) {
-    super(message, {
-      statusCode: HTTP_STATUS.BAD_REQUEST,
-      code: 'BAD_REQUEST',
-      context: details,
       isOperational: true,
     })
   }

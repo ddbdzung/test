@@ -15,19 +15,6 @@ import env from './env-schema'
  * - app.config.js: Structure & merge (environment-based, organized)
  */
 
-// MongoDB default options
-// const defaultMongoOptions = {
-//   useUnifiedTopology: true,
-//   useNewUrlParser: true,
-//   useCreateIndex: true,
-//   keepAlive: true, // Giúp giữ kết nối luôn sống
-//   keepAliveInitialDelay: 300000, // 5 minutes - Hữu ích nếu MongoDB có idle timeout
-//   socketTimeoutMS: 0, // Tắt timeout do không có hoạt động
-// }
-
-// Log validated port for debugging
-// logger.debug('Validated PORT:', env.PORT)
-
 /**
  * Configuration structure organized by environment
  */

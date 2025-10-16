@@ -1,7 +1,9 @@
+import config from '@/configs'
 import { requestContextHelper } from '@/framework/helpers/request-context.helper'
 import { requestContext } from '@/framework/middleware/request-context.middleware'
 import { requestLogger } from '@/framework/middleware/request-logger.middleware'
 import { requestValidator } from '@/framework/middleware/request-validator.middleware'
+import { securityHeaders } from '@/framework/middleware/security-header.middleware'
 import { wrapController } from '@/framework/middleware/wrap-controller.middleware'
 import express from 'express'
 
@@ -11,11 +13,10 @@ import logger from '@/core/helpers/logger.helper'
 import { Joi } from '@/core/helpers/validator.helper'
 import { snooze } from '@/core/utils/common.util'
 
-import config from '@/configs/app.config'
-
 const app = express()
 
 app.use(express.json())
+app.use(securityHeaders)
 
 const input = {
   query: {
@@ -74,11 +75,15 @@ app.post(
 )
 
 app.use((err, req, res, next) => {
-  if (res.headersSent) return next()
+  if (res.headersSent) {
+    next()
+    return
+  }
 
   if (err instanceof BaseError) {
     console.log(err.toJSON())
-    return res.status(err.statusCode).json(err.toJSON())
+    res.status(err.statusCode).json(err.toJSON())
+    return
   }
 
   res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).send(err)

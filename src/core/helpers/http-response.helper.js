@@ -5,6 +5,7 @@ import {
 
 /**
  * Class to build standardized HTTP response
+ * @implements {import('../Throwable').Throwable}
  */
 export class HttpResponse {
   /**
