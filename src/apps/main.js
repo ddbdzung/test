@@ -1,7 +1,8 @@
 import config from '@/configs'
-import { createApp } from '@/framework/loaders/express.loader'
+import { createApp } from '@/framework/express.loader'
 import { requestValidator } from '@/framework/middleware/request-validator.middleware'
 import { wrapController } from '@/framework/middleware/wrap-controller.middleware'
+import { setupGracefulShutdown } from '@/framework/shutdown.helper'
 
 import { APP_NAME } from '@/core/constants/common.constant'
 import logger from '@/core/helpers/logger.helper'
@@ -43,6 +44,13 @@ const controllerFn = async (req, res, next) => {
 
   const ctx = requestContextHelper.getContext()
   console.log('ctx', ctx)
+  new Promise(resolve => {
+    setTimeout(() => {
+      const contextX = requestContextHelper.getContext()
+      console.log('contextX', contextX)
+      resolve(contextX)
+    }, 3000)
+  })
 
   await snooze(3000)
   res.json({
@@ -68,5 +76,7 @@ const server = app.listen(config.port, err => {
 
   logger.info('Server is running on port ' + config.port)
 })
+
+setupGracefulShutdown(server)
 
 export default server

@@ -50,6 +50,6 @@ export const createApp = (name, callback = () => {}) => {
   app.use(notFound)
   app.use(errorHandler)
 
-  logger.info(`Express Application '${name}' created successfully`)
+  logger.info(`✅ Express Application '${name}' created successfully`)
   return app
 }

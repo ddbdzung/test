@@ -51,25 +51,29 @@ Project này là một **ExpressJS boilerplate** với kiến trúc Layered Arch
 
 ```
 src/
-├── bootstrap.js              # Application entry point
+├── apps/                     # Application entry points
+│   └── main.js              # Main app entry (orchestrator)
 ├── configs/                  # Configuration layer
 │   ├── env-schema.js        # Environment validation (Joi)
 │   └── app.config.js        # Application config (merged by env)
 ├── core/                     # Core cross-cutting concerns
 │   ├── constants/           # Constants (HTTP status, log levels)
-│   ├── helpers/             # Helpers (error, logger, validator)
+│   ├── helpers/             # Helpers (error, logger, validator, request-context)
 │   ├── utils/               # Utilities (common, security, type-check)
 │   └── Throwable.js         # Interface for error/response objects
 ├── framework/               # Express-specific layer
-│   ├── helpers/            # Framework helpers (request-context)
+│   ├── express.loader.js   # Express app factory
+│   ├── shutdown.helper.js  # Graceful shutdown system
 │   └── middleware/         # Express middleware
 │       ├── request-context.middleware.js
 │       ├── request-logger.middleware.js
 │       ├── request-validator.middleware.js
-│       ├── security-header.middleware.js
+│       ├── add-response-time.middleware.js
+│       ├── not-found.middleware.js
 │       ├── error-handler.middleware.js
 │       └── wrap-controller.middleware.js
-└── modules/                 # Business modules (empty, ready for expansion)
+└── modules/                 # Business modules
+    └── authentication/      # Auth module (example)
 ```
 
 ---
@@ -296,22 +300,88 @@ export class Throwable {
 
 ## 4. Framework Layer
 
-### 4.1. Middleware Pipeline
+### 4.1. Application Factory Pattern
+
+**express.loader.js** - Factory function để tạo Express app với standardized middleware pipeline:
 
 ```js
-// Typical middleware order in bootstrap.js:
-app.use(express.json())                    // Body parser
-app.use(securityHeaders)                   // Security headers
+import { createApp } from '@/framework/express.loader'
+
+const app = createApp(APP_NAME.MAIN, app => {
+  // Register routes here
+  app.get('/health', healthCheckHandler)
+  app.use('/api/users', userRoutes)
+})
+```
+
+**Middleware Pipeline** (trong createApp):
+
+```js
+// Stage 1: Pre-route middleware (auto-registered)
 app.use(requestContext({ ... }))           // AsyncLocalStorage context
 app.use(requestLogger)                     // Morgan + Winston logging
-app.post('/path',
-  requestValidator(schema, options),       // Joi validation
-  wrapController(controllerFn)             // Error handling wrapper
-)
+app.use(addResponseTime)                   // X-Response-Time header
+app.use(cors())                            // CORS headers
+app.use(compression())                     // Gzip compression
+app.use(helmet())                          // Security headers
+app.use(express.json())                    // JSON body parser
+app.use(express.urlencoded())              // URL-encoded parser
+
+// Stage 2: Routes (via callback parameter)
+callback(app)
+
+// Stage 3: Error handlers (auto-registered, must be last)
+app.use(notFound)                          // 404 handler
 app.use(errorHandler)                      // Global error handler
 ```
 
-### 4.2. request-context.middleware.js
+### 4.2. Graceful Shutdown System
+
+**shutdown.helper.js** - Production-ready graceful shutdown với cleanup task registry:
+
+```js
+import {
+  registerShutdownTask,
+  setupGracefulShutdown,
+} from '@/framework/shutdown.helper'
+
+// Register cleanup tasks from anywhere
+registerShutdownTask(
+  async () => await mongoose.disconnect(),
+  'mongodb-disconnect'
+)
+registerShutdownTask(async () => await redisClient.quit(), 'redis-disconnect')
+
+// Setup shutdown handler (in apps/main.js)
+const server = app.listen(port)
+setupGracefulShutdown(server, { timeoutMs: 10000 })
+```
+
+**Features**:
+
+- **Signal Handling**: SIGTERM, SIGINT, SIGHUP
+- **Crash Protection**: uncaughtException, unhandledRejection
+- **Cleanup Registry**: Register tasks from any module
+- **Timeout Protection**: Force exit after timeout (default: 10s)
+- **Duplicate Prevention**: Prevent multiple shutdown attempts
+
+**Shutdown Flow**:
+
+```
+Signal received (SIGTERM/SIGINT)
+  ↓
+Stop accepting new requests (server.close())
+  ↓
+Execute all registered cleanup tasks
+  ↓
+Race with timeout (10s default)
+  ↓
+Exit process (code 0 or 1)
+```
+
+### 4.3. Middleware Details
+
+#### 4.3.1. request-context.middleware.js
 
 **Purpose**: Setup AsyncLocalStorage để track request context trong suốt request lifecycle.
 
@@ -336,7 +406,7 @@ app.use(
   path: '/api/users',
   ip: '127.0.0.1',
   userAgent: 'Mozilla/5.0...',
-  startTime: 1697456789000,
+  startTime: process.hrtime.bigint(),  // High-resolution timestamp
   userId: 123,              // From extractUserId
   tenantId: 456             // From extractMetadata
 }
@@ -345,14 +415,57 @@ app.use(
 **Usage in code**:
 
 ```js
-import { requestContextHelper } from '@/framework/helpers/request-context.helper'
+import { requestContextHelper } from '@/core/helpers/request-context.helper'
 
 const ctx = requestContextHelper.getContext()
 const requestId = requestContextHelper.getContextValue('requestId')
 requestContextHelper.setContextValue('key', value)
 ```
 
-### 4.3. request-validator.middleware.js
+#### 4.3.2. add-response-time.middleware.js
+
+**Purpose**: Tự động thêm `X-Response-Time` header vào response.
+
+```js
+// Automatically added by express.loader
+// Uses high-resolution timer for accurate measurement
+```
+
+**Implementation**:
+
+- Hook vào `res.writeHead()` để capture timing
+- Sử dụng `process.hrtime.bigint()` từ request context
+- Calculate duration: `(endTime - startTime) / 1e6` ms
+- Set header: `X-Response-Time: 123.4567`
+
+**Benefits**:
+
+- Monitor API performance
+- Identify slow endpoints
+- Track latency trends
+
+#### 4.3.3. not-found.middleware.js
+
+**Purpose**: Handle 404 errors cho routes không tồn tại.
+
+```js
+// Automatically registered last (before errorHandler)
+// Catches all unmatched routes
+```
+
+**Response**:
+
+```js
+{
+  name: 'NotFoundError',
+  code: 'NOT_FOUND',
+  message: 'Resource not found',
+  statusCode: 404,
+  context: { identifier: '/api/unknown' }
+}
+```
+
+#### 4.3.4. request-validator.middleware.js
 
 **Purpose**: Validate `req.params`, `req.query`, `req.body` với Joi schema và deep sanitize để prevent prototype pollution.
 
@@ -388,7 +501,7 @@ app.post(
 
 **Express 5 Compatibility**: Sử dụng `Object.defineProperty()` để override read-only getters.
 
-### 4.4. request-logger.middleware.js
+#### 4.3.5. request-logger.middleware.js
 
 **Purpose**: HTTP request logging với Morgan + Winston.
 
@@ -409,22 +522,7 @@ morgan.token('user', () => requestContextHelper.getContextValue('userId'))
 - **development**: Log all requests
 - **test**: Silent
 
-### 4.5. security-header.middleware.js
-
-**Purpose**: Set security headers to protect against common attacks.
-
-```js
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-X-XSS-Protection: 1; mode=block
-Content-Security-Policy: default-src 'none'
-Referrer-Policy: no-referrer
-Permissions-Policy: geolocation=(), microphone=(), fullscreen=(self)
-```
-
-**TODO**: Add `Strict-Transport-Security` when HTTPS is enabled.
-
-### 4.6. wrap-controller.middleware.js
+#### 4.3.6. wrap-controller.middleware.js
 
 **Purpose**: Wrap async controller functions với:
 
@@ -457,7 +555,7 @@ app.get('/users/:id', wrapController(controllerFn, { timeout: 10000 }))
 - `undefined` → Send empty 200 response
 - `any` → Wrap in HttpResponse(200, data)
 
-### 4.7. error-handler.middleware.js
+#### 4.3.7. error-handler.middleware.js
 
 **Purpose**: Global error handler cho tất cả errors.
 
@@ -478,11 +576,103 @@ app.use(errorHandler)
 - Use generic error messages
 - Log full error details to file
 
+### 4.4. Security Hardening
+
+**Helmet.js Integration** - Automatic security headers:
+
+```js
+// Auto-enabled in express.loader
+app.use(helmet())
+```
+
+**Headers set by Helmet**:
+
+- `Content-Security-Policy`: XSS protection
+- `X-DNS-Prefetch-Control`: DNS prefetch control
+- `X-Frame-Options`: Clickjacking protection
+- `Strict-Transport-Security`: HTTPS enforcement
+- `X-Download-Options`: IE8+ download protection
+- `X-Content-Type-Options`: MIME sniffing protection
+- `X-Permitted-Cross-Domain-Policies`: Adobe products cross-domain
+- `Referrer-Policy`: Referrer information control
+- `X-XSS-Protection`: Legacy XSS filter
+
+**CORS Configuration**:
+
+```js
+app.use(cors()) // Currently permissive
+// TODO: Restrict to specific origins in production
+```
+
+**Compression**:
+
+```js
+app.use(compression()) // Gzip/Deflate compression
+// Reduces bandwidth usage significantly
+```
+
 ---
 
-## 5. Configuration System
+## 5. Application Entry Point
 
-### 5.1. Environment Variables Validation
+### 5.1. apps/main.js - Bootstrap Orchestrator
+
+**Purpose**: Main application entry với complete lifecycle management.
+
+**Structure**:
+
+```js
+// 1. Create Express app with factory
+const app = createApp(APP_NAME.MAIN, app => {
+  // Register routes
+  app.post('/', requestValidator(schema), wrapController(controllerFn))
+})
+
+// 2. Start HTTP server
+const server = app.listen(config.port, err => {
+  if (err) {
+    logger.error('Failed to start server', { err })
+    process.exit(1)
+  }
+  logger.info('Server is running on port ' + config.port)
+})
+
+// 3. Setup graceful shutdown
+setupGracefulShutdown(server)
+
+// 4. Export server for testing
+export default server
+```
+
+**Benefits**:
+
+- **Separation of Concerns**: App creation ≠ Server lifecycle
+- **Testability**: Can test app without starting server
+- **Production-Ready**: Graceful shutdown built-in
+- **Fail-Fast**: Startup errors exit immediately
+
+### 5.2. Multiple Apps Pattern
+
+**Support for multiple apps** (main, queue, socket):
+
+```js
+// apps/main.js - Main HTTP API
+const mainApp = createApp(APP_NAME.MAIN, registerMainRoutes)
+
+// apps/queue.js - Background job processor
+const queueApp = createApp(APP_NAME.QUEUE, registerQueueWorkers)
+
+// apps/socket.js - WebSocket server
+const socketApp = createApp(APP_NAME.SOCKET, registerSocketHandlers)
+```
+
+**Use Case**: Microservices architecture hoặc process isolation.
+
+---
+
+## 6. Configuration System
+
+### 6.1. Environment Variables Validation
 
 **env-schema.js** - Validation-first approach:
 
@@ -505,7 +695,7 @@ const envSchema = Joi.object({
 const parsedEnv = validate(envSchema, process.env)
 ```
 
-### 5.2. Application Configuration
+### 6.2. Application Configuration
 
 **app.config.js** - Environment-based config merging:
 
@@ -532,7 +722,7 @@ const rawConfig = {
 const config = merge(rawConfig.all, rawConfig[rawConfig.all.env])
 ```
 
-### 5.3. Configuration Philosophy
+### 6.3. Configuration Philosophy
 
 **Two-Step Approach**:
 
@@ -548,9 +738,9 @@ const config = merge(rawConfig.all, rawConfig[rawConfig.all.env])
 
 ---
 
-## 6. Error Handling Strategy
+## 7. Error Handling Strategy
 
-### 6.1. Error Classification
+### 7.1. Error Classification
 
 ```js
 // Operational Errors (Expected, Recoverable)
@@ -566,7 +756,7 @@ TypeError, ReferenceError
 → isOperational: false
 ```
 
-### 6.2. Error Context & Chaining
+### 7.2. Error Context & Chaining
 
 ```js
 try {
@@ -584,7 +774,7 @@ try {
 error.getErrorChain() // [current, cause1, cause2, ...]
 ```
 
-### 6.3. Error Response Format
+### 7.3. Error Response Format
 
 ```js
 // BaseError.toJSON() output:
@@ -601,7 +791,7 @@ error.getErrorChain() // [current, cause1, cause2, ...]
 }
 ```
 
-### 6.4. Error Handling Best Practices
+### 7.4. Error Handling Best Practices
 
 **1. Always use specific error classes**:
 
@@ -646,9 +836,9 @@ app.get('/users', wrapController(handler))
 
 ---
 
-## 7. Request Context Management
+## 8. Request Context Management
 
-### 7.1. AsyncLocalStorage Pattern
+### 8.1. AsyncLocalStorage Pattern
 
 **Problem**: Track request-specific data (requestId, userId) across async operations without passing through every function.
 
@@ -656,7 +846,7 @@ app.get('/users', wrapController(handler))
 
 ```js
 // Access anywhere in request lifecycle
-import { requestContextHelper } from '@/framework/helpers/request-context.helper'
+import { requestContextHelper } from '@/core/helpers/request-context.helper'
 
 // Setup context (middleware)
 app.use(
@@ -671,7 +861,7 @@ async function deepNestedFunction() {
 }
 ```
 
-### 7.2. Context Structure
+### 8.2. Context Structure
 
 ```js
 {
@@ -681,13 +871,13 @@ async function deepNestedFunction() {
   path: '/api/users',
   ip: '127.0.0.1',
   userAgent: 'Mozilla/5.0...',
-  startTime: 1697456789000,
+  startTime: process.hrtime.bigint(),  // High-resolution timestamp (nanoseconds)
   userId: 123,                         // Custom extracted
   tenantId: 456                        // Custom metadata
 }
 ```
 
-### 7.3. Context Usage Patterns
+### 8.3. Context Usage Patterns
 
 **1. Logging with context**:
 
@@ -712,7 +902,15 @@ const tenantId = requestContextHelper.getContextValue('tenantId')
 // Used for distributed tracing
 ```
 
-### 7.4. Security Considerations
+**4. Response Time Tracking**:
+
+```js
+// Automatic via add-response-time middleware
+// Uses startTime from context
+// Header: X-Response-Time: 123.4567
+```
+
+### 8.4. Security Considerations
 
 - Dangerous keys (`__proto__`, `constructor`, `prototype`) are blocked
 - Context is isolated per request (no cross-contamination)
@@ -720,9 +918,9 @@ const tenantId = requestContextHelper.getContextValue('tenantId')
 
 ---
 
-## 8. Validation & Security
+## 9. Validation & Security
 
-### 8.1. Prototype Pollution Protection
+### 9.1. Prototype Pollution Protection
 
 **Threat**: Attacker modifies `Object.prototype` via malicious input:
 
@@ -760,7 +958,7 @@ requestValidator(schema, { removeUnknown: true })
 // - Safe assignment to req object
 ```
 
-### 8.2. Joi Schema Patterns
+### 9.2. Joi Schema Patterns
 
 **Basic Validation**:
 
@@ -803,7 +1001,7 @@ const schema = {
 }
 ```
 
-### 8.3. Security Headers
+### 9.3. Security Headers
 
 ```js
 X-Content-Type-Options: nosniff           // Prevent MIME sniffing
@@ -814,7 +1012,7 @@ Referrer-Policy: no-referrer             // No referrer leakage
 Permissions-Policy: geolocation=()        // Feature policy
 ```
 
-### 8.4. Input Sanitization Pipeline
+### 9.4. Input Sanitization Pipeline
 
 ```
 Raw Input → Joi Validation → Deep Sanitize → Filter Unknown → Safe Output
@@ -841,9 +1039,9 @@ Raw Input → Joi Validation → Deep Sanitize → Filter Unknown → Safe Outpu
 
 ---
 
-## 9. Build & Development Workflow
+## 10. Build & Development Workflow
 
-### 9.1. Scripts Overview
+### 10.1. Scripts Overview
 
 ```json
 {
@@ -856,7 +1054,7 @@ Raw Input → Joi Validation → Deep Sanitize → Filter Unknown → Safe Outpu
 }
 ```
 
-### 9.2. Development Workflow
+### 10.2. Development Workflow
 
 **1. Development Mode**:
 
@@ -883,7 +1081,7 @@ pnpm lint:fix          # Auto-fix lint errors
 pnpm format            # Format code with Prettier
 ```
 
-### 9.3. Build Process
+### 10.3. Build Process
 
 **Development Build**:
 
@@ -904,7 +1102,7 @@ pnpm build
 # - Source maps for debugging
 ```
 
-### 9.4. Babel Configuration
+### 10.4. Babel Configuration
 
 **Target**: Node.js 18+, CommonJS modules
 
@@ -921,7 +1119,7 @@ pnpm build
 - **production**: Remove console, no comments
 - **test**: Current node version
 
-### 9.5. ESLint Configuration
+### 10.5. ESLint Configuration
 
 **Plugins**:
 
@@ -936,7 +1134,7 @@ pnpm build
 - `import/no-unresolved`, `import/no-cycle` - Import checks
 - `security/detect-object-injection` - Security warnings
 
-### 9.6. Git Workflow
+### 10.6. Git Workflow
 
 **Conventional Commits**:
 
@@ -963,7 +1161,7 @@ git push --follow-tags
 
 ---
 
-## 10. Best Practices & Patterns
+## 11. Best Practices & Patterns
 
 ### 10.1. Error Handling
 
@@ -1275,11 +1473,15 @@ post.model.js
 ```js
 // Config
 import config from '@/configs'
-// Context
-import { requestContextHelper } from '@/framework/helpers/request-context.helper'
+// Framework
+import { createApp } from '@/framework/express.loader'
 // Middleware
 import { requestValidator } from '@/framework/middleware/request-validator.middleware'
 import { wrapController } from '@/framework/middleware/wrap-controller.middleware'
+import {
+  registerShutdownTask,
+  setupGracefulShutdown,
+} from '@/framework/shutdown.helper'
 // Errors
 import {
   BaseError,
@@ -1291,12 +1493,51 @@ import logger from '@/helpers/logger.helper'
 // Validation
 import { Joi, validate } from '@/helpers/validator.helper'
 
+// Context
+import { requestContextHelper } from '@/core/helpers/request-context.helper'
+
 // Utils
 import { merge, pick, snooze } from '@/utils/common.util'
 import { deepSanitize, isDangerousKey } from '@/utils/security.util'
 ```
 
 ### Common Patterns
+
+**Full Application Setup**:
+
+```js
+import config from '@/configs'
+import { createApp } from '@/framework/express.loader'
+import {
+  registerShutdownTask,
+  setupGracefulShutdown,
+} from '@/framework/shutdown.helper'
+
+import { APP_NAME } from '@/core/constants/common.constant'
+
+// Create app with routes
+const app = createApp(APP_NAME.MAIN, app => {
+  app.use('/api/users', userRoutes)
+  app.use('/api/posts', postRoutes)
+})
+
+// Register cleanup tasks (optional)
+registerShutdownTask(async () => {
+  await mongoose.disconnect()
+}, 'mongodb-disconnect')
+
+// Start server
+const server = app.listen(config.port, err => {
+  if (err) {
+    logger.error('Failed to start', { err })
+    process.exit(1)
+  }
+  logger.info(`Server running on port ${config.port}`)
+})
+
+// Enable graceful shutdown
+setupGracefulShutdown(server, { timeoutMs: 10000 })
+```
 
 **Controller with Validation**:
 
