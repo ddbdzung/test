@@ -1,7 +1,6 @@
-import { requestContextHelper } from '@/framework/helpers/request-context.helper'
-
 import { REQUEST_ID_KEY } from '@/core/constants/common.constant'
 import { BaseError, InternalServerError } from '@/core/helpers/error.helper'
+import { requestContextHelper } from '@/core/helpers/request-context.helper'
 import { ensureObject } from '@/core/utils/common.util'
 
 /**
@@ -51,7 +50,7 @@ export const requestContext = options => {
         path: req.path,
         ip: req.ip || req.connection.remoteAddress,
         userAgent: req.headers['user-agent'],
-        startTime: Date.now(),
+        startTime: process.hrtime.bigint(),
         userId: extractUserId?.(req),
         ...extractMetadata?.(req),
       }

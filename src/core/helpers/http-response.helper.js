@@ -1,7 +1,7 @@
 import {
   HTTP_STATUS,
   HTTP_STATUS_MESSAGE,
-} from '../constants/http-status.constant'
+} from '@/constants/http-status.constant'
 
 /**
  * Class to build standardized HTTP response

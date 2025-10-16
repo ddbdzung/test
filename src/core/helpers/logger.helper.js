@@ -3,11 +3,12 @@ import {
   ENVIRONMENT,
   LOG_LEVEL,
 } from '@/constants/common.constant.js'
-import { requestContextHelper } from '@/framework/helpers/request-context.helper'
 import path from 'path'
 import util from 'util'
 import winston from 'winston'
 import 'winston-daily-rotate-file'
+
+import { requestContextHelper } from '@/core/helpers/request-context.helper'
 
 const defaultLogLevel = LOG_LEVEL.INFO
 const isTestEnv = CURRENT_ENV === ENVIRONMENT.TEST

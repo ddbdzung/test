@@ -1,8 +1,8 @@
-import { CURRENT_ENV, ENVIRONMENT } from '../constants/common.constant'
+import { CURRENT_ENV, ENVIRONMENT } from '@/constants/common.constant'
 import {
   HTTP_STATUS,
   getHttpStatusMessageCode,
-} from '../constants/http-status.constant'
+} from '@/constants/http-status.constant'
 
 /**
  * @typedef {Object} BaseErrorOptions

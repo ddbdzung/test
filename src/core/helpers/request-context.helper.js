@@ -4,7 +4,7 @@ import crypto from 'crypto'
 import { BaseError } from '@/core/helpers/error.helper'
 import { isDangerousKey } from '@/core/utils/security.util'
 
-export class RequestContextHelper {
+class RequestContextHelper {
   #asyncLocalStorage = null
   constructor() {
     this.#asyncLocalStorage = new AsyncLocalStorage()

@@ -1,10 +1,11 @@
-import { requestContextHelper } from '@/framework/helpers/request-context.helper'
 import morgan from 'morgan'
 
 import { CURRENT_ENV, ENVIRONMENT } from '@/core/constants/common.constant'
 import logger from '@/core/helpers/logger.helper'
+import { requestContextHelper } from '@/core/helpers/request-context.helper'
 
 const SKIP_PATHS = ['/healthz', '/favicon']
+const isProduction = CURRENT_ENV === ENVIRONMENT.PRODUCTION
 
 // Tạo stream chuyển log về Winston (level http)
 const stream = {
@@ -27,8 +28,7 @@ morgan.token(
 )
 
 // Format tùy chỉnh (dễ đọc & phân tích)
-const format =
-  ':remote-addr :method :url :status :res[content-length] - :response-time ms [userId=:user reqId=:id]'
+const format = `${isProduction ? ':remote-addr' : ''} :method :url :status :res[content-length] - :response-time ms [userId=:user reqId=:id]`
 
 let requestLogger = (req, res, next) => next()
 if ([ENVIRONMENT.PRODUCTION, ENVIRONMENT.STAGING].includes(CURRENT_ENV))
