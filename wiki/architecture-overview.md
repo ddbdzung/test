@@ -3,7 +3,7 @@
 > Tài liệu tổng hợp kiến trúc và patterns của ExpressJS CRUD project
 >
 > **Author:** Dang Duc B. Dzung (David)  
-> **Last Updated:** October 16, 2025
+> **Last Updated:** October 19, 2025
 
 ---
 
@@ -13,12 +13,13 @@
 - [2. Kiến trúc Layered Architecture](#2-kiến-trúc-layered-architecture)
 - [3. Core Layer](#3-core-layer)
 - [4. Framework Layer](#4-framework-layer)
-- [5. Configuration System](#5-configuration-system)
-- [6. Error Handling Strategy](#6-error-handling-strategy)
-- [7. Request Context Management](#7-request-context-management)
-- [8. Validation & Security](#8-validation--security)
-- [9. Build & Development Workflow](#9-build--development-workflow)
-- [10. Best Practices & Patterns](#10-best-practices--patterns)
+- [5. Module Architecture](#5-module-architecture)
+- [6. Configuration System](#6-configuration-system)
+- [7. Error Handling Strategy](#7-error-handling-strategy)
+- [8. Request Context Management](#8-request-context-management)
+- [9. Validation & Security](#9-validation--security)
+- [10. Build & Development Workflow](#10-build--development-workflow)
+- [11. Best Practices & Patterns](#11-best-practices--patterns)
 
 ---
 
@@ -58,12 +59,15 @@ src/
 │   └── app.config.js        # Application config (merged by env)
 ├── core/                     # Core cross-cutting concerns
 │   ├── constants/           # Constants (HTTP status, log levels)
-│   ├── helpers/             # Helpers (error, logger, validator, request-context)
+│   ├── helpers/             # Helpers (error, logger, validator, request-context, http-response)
 │   ├── utils/               # Utilities (common, security, type-check)
 │   └── Throwable.js         # Interface for error/response objects
 ├── framework/               # Express-specific layer
 │   ├── express.loader.js   # Express app factory
 │   ├── shutdown.helper.js  # Graceful shutdown system
+│   ├── helpers/             # Framework helpers
+│   │   ├── api.helper.js   # API utilities (PaginatedResponse, query params)
+│   │   └── mongodb.helper.js # MongoDB utilities (ObjectId helpers)
 │   └── middleware/         # Express middleware
 │       ├── request-context.middleware.js
 │       ├── request-logger.middleware.js
@@ -73,7 +77,16 @@ src/
 │       ├── error-handler.middleware.js
 │       └── wrap-controller.middleware.js
 └── modules/                 # Business modules
-    └── authentication/      # Auth module (example)
+    ├── main.route.js        # Main routes registry
+    └── _post_/              # Post module (example)
+        ├── mock-post.js     # Mock data
+        ├── post.route.js    # Routes
+        ├── services/        # Business logic
+        │   └── post.service.js
+        ├── usecases/        # Use cases (orchestration)
+        │   └── post-crud.usecase.js
+        └── validators/      # Validation schemas
+            └── post.validator.js
 ```
 
 ---
@@ -121,9 +134,11 @@ Modules → Framework → Core
 ```js
 ENVIRONMENT // development, production, test, staging
 APP_NAME // main, queue, socket
+API_PREFIX // 'api' - default API prefix for routes
 LOG_LEVEL // debug, info, warn, error, verbose, http
-TIMEOUT_CONTROLLER // DEFAULT, HEAVY_PROCESS, ENQUEUE_PROCESS
+TIMEOUT_CONTROLLER // DEFAULT: 10000ms, HEAVY_PROCESS: 20000ms, ENQUEUE_PROCESS: 5000ms
 REQUEST_ID_KEY // 'X-Request-Id'
+CURRENT_ENV // Current environment (from NODE_ENV)
 ```
 
 #### **http-status.constant.js**
@@ -613,9 +628,333 @@ app.use(compression()) // Gzip/Deflate compression
 
 ---
 
-## 5. Application Entry Point
+## 5. Module Architecture
 
-### 5.1. apps/main.js - Bootstrap Orchestrator
+### 5.1. Module Structure Pattern
+
+Project sử dụng **feature-based organization** theo pattern:
+
+```
+modules/
+├── main.route.js           # Central route registry
+└── <module-name>/
+    ├── <module>.route.js   # Routes definition
+    ├── mock-<module>.js    # Mock data (for development)
+    ├── services/           # Business logic layer
+    │   └── <module>.service.js
+    ├── usecases/           # Use case orchestration layer
+    │   └── <module>-crud.usecase.js
+    └── validators/         # Validation schemas
+        └── <module>.validator.js
+```
+
+### 5.2. Post Module Example
+
+#### 5.2.1. Module Overview
+
+Post module là example implementation của CRUD operations với architecture pattern đầy đủ:
+
+```
+_post_/
+├── mock-post.js            # In-memory data store
+├── post.route.js           # HTTP routes
+├── services/
+│   └── post.service.js     # Data access layer
+├── usecases/
+│   └── post-crud.usecase.js # Business orchestration
+└── validators/
+    └── post.validator.js   # Joi validation schemas
+```
+
+#### 5.2.2. Routes Layer (post.route.js)
+
+**Responsibilities**:
+
+- HTTP route definitions
+- Request validation setup
+- Controller wrapping
+- Response formatting
+
+**Example**:
+
+```js
+import { Router } from 'express'
+
+import { HTTP_STATUS } from '@/core/constants'
+import { HttpResponse } from '@/core/helpers'
+
+import { PaginatedResponse } from '@/framework/helpers'
+import { requestValidator, wrapController } from '@/framework/middleware'
+
+const router = Router()
+
+// CREATE - 201 response
+router.post(
+  '/',
+  requestValidator(createOneDto),
+  wrapController(async req => {
+    return new HttpResponse(
+      HTTP_STATUS.CREATED,
+      await postCrudUsecase.createOnePostUsecase(req.body)
+    )
+  })
+)
+
+// UPDATE - 200 response (auto-wrapped)
+router.patch(
+  '/:id',
+  requestValidator(updateOneDto),
+  wrapController(async req => {
+    return postCrudUsecase.updateOnePostUsecase(req.params, req.body)
+  })
+)
+
+// LIST - Paginated response
+router.get(
+  '/',
+  requestValidator(getListDto),
+  wrapController(async req => {
+    const { list, total } = await postCrudUsecase.getListPostUsecase(req.query)
+    return new PaginatedResponse(list, {
+      page: req.query.page,
+      limit: req.query.limit,
+      total,
+    })
+  })
+)
+
+export default router
+```
+
+**Key Features**:
+
+- Thin controllers (business logic in services/usecases)
+- Automatic error handling via `wrapController`
+- Standardized responses (`HttpResponse`, `PaginatedResponse`)
+- Validation at route level
+
+#### 5.2.3. Validators Layer (post.validator.js)
+
+**Responsibilities**:
+
+- Define Joi schemas for request validation
+- Reuse standard query params for pagination
+
+**Example**:
+
+```js
+import { Joi } from '@/core/helpers/validator.helper'
+
+import { stdGetListQueryParams } from '@/framework/helpers'
+
+export const createOneDto = {
+  body: Joi.object({
+    title: Joi.string().required(),
+    content: Joi.string().optional(),
+  }),
+}
+
+export const updateOneDto = {
+  params: Joi.object({
+    id: Joi.number().required(),
+  }),
+  body: Joi.object({
+    title: Joi.string().optional(),
+    content: Joi.string().optional(),
+  })
+    .min(1) // At least 1 field required
+    .required(),
+}
+
+export const getListDto = {
+  query: stdGetListQueryParams, // Reuse standard pagination schema
+}
+```
+
+**Standard Query Params** (`stdGetListQueryParams`):
+
+```js
+{
+  page: Joi.number().default(1).min(1).optional(),
+  limit: Joi.number().max(1000).default(10).optional(),
+  q: Joi.string().max(256).trim().optional(),      // search term
+  sortBy: Joi.string().pattern(/^[a-zA-Z0-9_-]+$/).optional(),
+  fields: Joi.array().items(Joi.string()).min(1).optional(),  // field projection
+}
+```
+
+#### 5.2.4. Use Cases Layer (post-crud.usecase.js)
+
+**Responsibilities**:
+
+- Business logic orchestration
+- Coordinate between multiple services
+- Handle cross-cutting concerns (authorization, logging)
+
+**Example**:
+
+```js
+export class PostCrudUsecase {
+  constructor(postService) {
+    this.postService = postService
+  }
+
+  createOnePostUsecase(dto) {
+    return this.postService.createOne(dto)
+  }
+
+  async getListPostUsecase(queryDto) {
+    // Early return optimization
+    const total = await this.postService.getTotal(queryDto)
+    if (total === 0) {
+      return { list: [], total: 0 }
+    }
+
+    return {
+      list: await this.postService.getList(queryDto),
+      total,
+    }
+  }
+
+  // ... other use cases
+}
+
+export const postCrudUsecase = new PostCrudUsecase(postService)
+```
+
+**Pattern**: Singleton instance exported for easy import
+
+#### 5.2.5. Services Layer (post.service.js)
+
+**Responsibilities**:
+
+- Data access logic
+- Database/storage operations
+- Data transformation
+
+**Example**:
+
+```js
+import { NotFoundError } from '@/core/helpers'
+import { pick } from '@/core/utils'
+
+import { posts } from '../mock-post'
+
+export class PostService {
+  createOne(dto) {
+    const newPost = {
+      ...dto,
+      id: posts.length + 1,
+      createdAt: new Date(),
+    }
+    posts.push(newPost)
+    return newPost
+  }
+
+  getList(queryDto) {
+    const { page, limit, sortBy, fields } = queryDto
+
+    let result = posts
+
+    // Sorting logic
+    if (sortBy) {
+      result = result.sort((a, b) => {
+        const isDescending = sortBy.startsWith('-')
+        const field = isDescending ? sortBy.slice(1) : sortBy
+        return isDescending ? b[field] - a[field] : a[field] - b[field]
+      })
+    }
+
+    // Pagination + field projection
+    return result
+      .slice((page - 1) * limit, page * limit)
+      .map(post => (fields ? pick(post, fields) : post))
+  }
+
+  getDetail(queryDto) {
+    const post = posts.find(post => post.id === queryDto.id)
+    if (!post) {
+      throw new NotFoundError('Post', { id: queryDto.id })
+    }
+    return post
+  }
+}
+
+export const postService = new PostService()
+```
+
+**Features**:
+
+- Uses `NotFoundError` for resource not found
+- Supports sorting, pagination, field projection
+- Mock data for rapid prototyping
+
+#### 5.2.6. Route Registration (main.route.js)
+
+**Central registry** cho tất cả module routes:
+
+```js
+import { Router } from 'express'
+
+import postRoutes from './_post_/post.route'
+
+const router = Router()
+
+router.use('/posts', postRoutes)
+// router.use('/users', userRoutes)
+// router.use('/auth', authRoutes)
+
+export default router
+```
+
+**Usage in app**:
+
+```js
+// apps/main.js
+import { API_PREFIX } from '@/core/constants/common.constant'
+
+import mainRoutes from '@/modules/main.route'
+
+const app = createApp(APP_NAME.MAIN, app => {
+  app.use(`/${API_PREFIX}`, mainRoutes)
+})
+
+// Result: /api/posts, /api/users, ...
+```
+
+### 5.3. Module Architecture Benefits
+
+**1. Separation of Concerns**:
+
+```
+Routes → Usecases → Services
+- Routes: HTTP layer (thin controllers)
+- Usecases: Business orchestration
+- Services: Data access
+```
+
+**2. Testability**:
+
+- Test services independently (pure business logic)
+- Mock services in usecase tests
+- Mock usecases in route/integration tests
+
+**3. Reusability**:
+
+- Services can be reused across multiple usecases
+- Usecases can be reused in different contexts (HTTP, queue, socket)
+
+**4. Maintainability**:
+
+- Clear boundaries between layers
+- Easy to locate code (feature-based)
+- Changes in one layer don't affect others
+
+---
+
+## 6. Application Entry Point
+
+### 6.1. apps/main.js - Bootstrap Orchestrator
 
 **Purpose**: Main application entry với complete lifecycle management.
 
@@ -651,7 +990,7 @@ export default server
 - **Production-Ready**: Graceful shutdown built-in
 - **Fail-Fast**: Startup errors exit immediately
 
-### 5.2. Multiple Apps Pattern
+### 6.2. Multiple Apps Pattern
 
 **Support for multiple apps** (main, queue, socket):
 
@@ -670,9 +1009,244 @@ const socketApp = createApp(APP_NAME.SOCKET, registerSocketHandlers)
 
 ---
 
-## 6. Configuration System
+## 7. Framework Helpers
 
-### 6.1. Environment Variables Validation
+### 7.1. api.helper.js - API Utilities
+
+**Purpose**: Provide reusable utilities for API development.
+
+#### 7.1.1. PaginatedResponse
+
+**Extended HttpResponse** cho paginated API responses:
+
+```js
+export class PaginatedResponse extends HttpResponse {
+  constructor(data, metadata = {}, message = HTTP_STATUS_MESSAGE.OK) {
+    super(HTTP_STATUS.OK, data, message, metadata)
+  }
+
+  toJSON() {
+    const { page, limit, total, ...restMetadata } = this.metadata
+    const totalPages = Math.ceil(total / limit)
+
+    return {
+      ...super.toJSON(),
+      meta: {
+        ...restMetadata,
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    }
+  }
+}
+```
+
+**Response Format**:
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": [...],
+  "message": "OK",
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 50,
+    "totalPages": 5
+  },
+  "timestamp": "2025-10-19T..."
+}
+```
+
+**Usage**:
+
+```js
+router.get(
+  '/',
+  wrapController(async req => {
+    const { list, total } = await getList(req.query)
+    return new PaginatedResponse(list, {
+      page: req.query.page,
+      limit: req.query.limit,
+      total,
+    })
+  })
+)
+```
+
+#### 7.1.2. Standard Query Parameters
+
+**stdGetListQueryParams** - Reusable schema cho list/pagination endpoints:
+
+```js
+export const stdQueryParams = {
+  page: Joi.number().default(1).min(1).optional(),
+  limit: Joi.number().max(1_000).default(10).optional(),
+  q: Joi.string().max(256).trim().optional(), // search term
+  sortBy: Joi.string()
+    .pattern(/^[a-zA-Z0-9_-]+$/)
+    .optional(),
+  fields: Joi.array().items(Joi.string()).min(1).optional(), // field projection
+}
+
+export const stdGetListQueryParams = Joi.object(stdQueryParams)
+```
+
+**Query Examples**:
+
+```bash
+# Pagination
+GET /api/posts?page=2&limit=20
+
+# Search
+GET /api/posts?q=nodejs
+
+# Sorting
+GET /api/posts?sortBy=createdAt
+
+# Field projection
+GET /api/posts?fields=title&fields=createdAt
+
+# Combined
+GET /api/posts?page=1&limit=10&sortBy=createdAt&fields=title&fields=content
+```
+
+### 7.2. mongodb.helper.js - MongoDB Utilities
+
+**Purpose**: Utilities for MongoDB ObjectId operations and validation.
+
+#### 7.2.1. ObjectId Validation
+
+```js
+export const isValidObjectIdString = value => {
+  if (typeof value === 'string') {
+    return /^[0-9a-f]{24}$/.test(value)
+  }
+  return false
+}
+```
+
+**Usage**:
+
+```js
+if (!isValidObjectIdString(userId)) {
+  throw new ValidationError('Invalid user ID format')
+}
+```
+
+#### 7.2.2. ObjectId Creation
+
+```js
+export const makeObjectId = value => {
+  if (!value) return new Types.ObjectId() // Generate new ID
+  if (!isValidObjectIdString(value)) return value // Pass through invalid
+  return new Types.ObjectId(value) // Convert string to ObjectId
+}
+```
+
+**Usage**:
+
+```js
+const userId = makeObjectId(req.params.id)
+const newId = makeObjectId() // Generate new ID
+```
+
+#### 7.2.3. ObjectId Comparison
+
+```js
+export const isSameObjectId = (a, b) => {
+  if (!a || !b) return false
+
+  try {
+    const idA = a instanceof Types.ObjectId ? a : new Types.ObjectId(a)
+    const idB = b instanceof Types.ObjectId ? b : new Types.ObjectId(b)
+    return idA.equals(idB)
+  } catch {
+    return false // Invalid ObjectId
+  }
+}
+```
+
+**Usage**:
+
+```js
+if (isSameObjectId(post.authorId, currentUser.id)) {
+  // User is author
+}
+```
+
+#### 7.2.4. Joi Custom Validators
+
+**isMongoIdDto** - Validation only:
+
+```js
+export const isMongoIdDto = (value, helpers) => {
+  if (!isValidObjectIdString(value)) {
+    return helpers.error(`${value} is not a valid MongoDB ObjectId`)
+  }
+  return value
+}
+
+// Usage
+const schema = Joi.object({
+  userId: Joi.string().custom(isMongoIdDto).required(),
+})
+```
+
+**toMongoIdDto** - Validation + Transformation:
+
+```js
+export const toMongoIdDto = (value, helpers) => {
+  if (!isValidObjectIdString(value)) {
+    return helpers.error(`${value} is not a valid MongoDB ObjectId`)
+  }
+  return makeObjectId(value) // Transform to ObjectId
+}
+
+// Usage
+const schema = Joi.object({
+  userId: Joi.string().custom(toMongoIdDto).required(),
+})
+// After validation, req.body.userId is ObjectId instance
+```
+
+**makeMongoIdDto** - Transformation only (use with isMongoIdDto):
+
+```js
+export const makeMongoIdDto = value => {
+  return makeObjectId(value)
+}
+
+// Usage
+const schema = Joi.object({
+  userId: Joi.string()
+    .custom(isMongoIdDto) // Validate
+    .custom(makeMongoIdDto) // Transform
+    .required(),
+})
+```
+
+**Best Practices**:
+
+```js
+// ✅ Good: Validate + Transform in one step
+userId: Joi.string().custom(toMongoIdDto).required()
+
+// ✅ Good: Explicit validation + transformation
+userId: Joi.string().custom(isMongoIdDto).custom(makeMongoIdDto).required()
+
+// ❌ Bad: Only transform without validation
+userId: Joi.string().custom(makeMongoIdDto).required()
+```
+
+---
+
+## 8. Configuration System
+
+### 8.1. Environment Variables Validation
 
 **env-schema.js** - Validation-first approach:
 
@@ -695,7 +1269,7 @@ const envSchema = Joi.object({
 const parsedEnv = validate(envSchema, process.env)
 ```
 
-### 6.2. Application Configuration
+### 8.2. Application Configuration
 
 **app.config.js** - Environment-based config merging:
 
@@ -722,7 +1296,7 @@ const rawConfig = {
 const config = merge(rawConfig.all, rawConfig[rawConfig.all.env])
 ```
 
-### 6.3. Configuration Philosophy
+### 8.3. Configuration Philosophy
 
 **Two-Step Approach**:
 
@@ -738,9 +1312,9 @@ const config = merge(rawConfig.all, rawConfig[rawConfig.all.env])
 
 ---
 
-## 7. Error Handling Strategy
+## 9. Error Handling Strategy
 
-### 7.1. Error Classification
+### 9.1. Error Classification
 
 ```js
 // Operational Errors (Expected, Recoverable)
@@ -756,7 +1330,7 @@ TypeError, ReferenceError
 → isOperational: false
 ```
 
-### 7.2. Error Context & Chaining
+### 9.2. Error Context & Chaining
 
 ```js
 try {
@@ -774,7 +1348,7 @@ try {
 error.getErrorChain() // [current, cause1, cause2, ...]
 ```
 
-### 7.3. Error Response Format
+### 9.3. Error Response Format
 
 ```js
 // BaseError.toJSON() output:
@@ -791,7 +1365,7 @@ error.getErrorChain() // [current, cause1, cause2, ...]
 }
 ```
 
-### 7.4. Error Handling Best Practices
+### 9.4. Error Handling Best Practices
 
 **1. Always use specific error classes**:
 
@@ -836,9 +1410,9 @@ app.get('/users', wrapController(handler))
 
 ---
 
-## 8. Request Context Management
+## 10. Request Context Management
 
-### 8.1. AsyncLocalStorage Pattern
+### 10.1. AsyncLocalStorage Pattern
 
 **Problem**: Track request-specific data (requestId, userId) across async operations without passing through every function.
 
@@ -861,7 +1435,7 @@ async function deepNestedFunction() {
 }
 ```
 
-### 8.2. Context Structure
+### 10.2. Context Structure
 
 ```js
 {
@@ -877,7 +1451,7 @@ async function deepNestedFunction() {
 }
 ```
 
-### 8.3. Context Usage Patterns
+### 10.3. Context Usage Patterns
 
 **1. Logging with context**:
 
@@ -910,7 +1484,7 @@ const tenantId = requestContextHelper.getContextValue('tenantId')
 // Header: X-Response-Time: 123.4567
 ```
 
-### 8.4. Security Considerations
+### 10.4. Security Considerations
 
 - Dangerous keys (`__proto__`, `constructor`, `prototype`) are blocked
 - Context is isolated per request (no cross-contamination)
@@ -918,9 +1492,9 @@ const tenantId = requestContextHelper.getContextValue('tenantId')
 
 ---
 
-## 9. Validation & Security
+## 11. Validation & Security
 
-### 9.1. Prototype Pollution Protection
+### 11.1. Prototype Pollution Protection
 
 **Threat**: Attacker modifies `Object.prototype` via malicious input:
 
@@ -958,7 +1532,7 @@ requestValidator(schema, { removeUnknown: true })
 // - Safe assignment to req object
 ```
 
-### 9.2. Joi Schema Patterns
+### 11.2. Joi Schema Patterns
 
 **Basic Validation**:
 
@@ -1001,7 +1575,7 @@ const schema = {
 }
 ```
 
-### 9.3. Security Headers
+### 11.3. Security Headers
 
 ```js
 X-Content-Type-Options: nosniff           // Prevent MIME sniffing
@@ -1012,7 +1586,7 @@ Referrer-Policy: no-referrer             // No referrer leakage
 Permissions-Policy: geolocation=()        // Feature policy
 ```
 
-### 9.4. Input Sanitization Pipeline
+### 11.4. Input Sanitization Pipeline
 
 ```
 Raw Input → Joi Validation → Deep Sanitize → Filter Unknown → Safe Output
@@ -1039,9 +1613,9 @@ Raw Input → Joi Validation → Deep Sanitize → Filter Unknown → Safe Outpu
 
 ---
 
-## 10. Build & Development Workflow
+## 12. Build & Development Workflow
 
-### 10.1. Scripts Overview
+### 12.1. Scripts Overview
 
 ```json
 {
@@ -1054,7 +1628,7 @@ Raw Input → Joi Validation → Deep Sanitize → Filter Unknown → Safe Outpu
 }
 ```
 
-### 10.2. Development Workflow
+### 12.2. Development Workflow
 
 **1. Development Mode**:
 
@@ -1081,7 +1655,7 @@ pnpm lint:fix          # Auto-fix lint errors
 pnpm format            # Format code with Prettier
 ```
 
-### 10.3. Build Process
+### 12.3. Build Process
 
 **Development Build**:
 
@@ -1102,7 +1676,7 @@ pnpm build
 # - Source maps for debugging
 ```
 
-### 10.4. Babel Configuration
+### 12.4. Babel Configuration
 
 **Target**: Node.js 18+, CommonJS modules
 
@@ -1119,7 +1693,7 @@ pnpm build
 - **production**: Remove console, no comments
 - **test**: Current node version
 
-### 10.5. ESLint Configuration
+### 12.5. ESLint Configuration
 
 **Plugins**:
 
@@ -1134,7 +1708,7 @@ pnpm build
 - `import/no-unresolved`, `import/no-cycle` - Import checks
 - `security/detect-object-injection` - Security warnings
 
-### 10.6. Git Workflow
+### 12.6. Git Workflow
 
 **Conventional Commits**:
 
@@ -1161,9 +1735,9 @@ git push --follow-tags
 
 ---
 
-## 11. Best Practices & Patterns
+## 13. Best Practices & Patterns
 
-### 10.1. Error Handling
+### 13.1. Error Handling
 
 **✅ DO**:
 
@@ -1198,7 +1772,7 @@ catch (err) {
 }
 ```
 
-### 10.2. Validation
+### 13.2. Validation
 
 **✅ DO**:
 
@@ -1228,7 +1802,7 @@ if (!req.body.email) {
 const age = Number(req.query.age)
 ```
 
-### 10.3. Logging
+### 13.3. Logging
 
 **✅ DO**:
 
@@ -1256,7 +1830,7 @@ logger.info('User data', { password: user.password })
 logger.error('User logged in') // Should be info
 ```
 
-### 10.4. Controller Design
+### 13.4. Controller Design
 
 **✅ DO**:
 
@@ -1286,7 +1860,7 @@ const getUser = async (req, res) => {
 }
 ```
 
-### 10.5. Configuration
+### 13.5. Configuration
 
 **✅ DO**:
 
@@ -1313,7 +1887,7 @@ const port = process.env.PORT || 8000
 const jwtSecret = process.env.JWT_SECRET // Might be undefined
 ```
 
-### 10.6. Middleware Order
+### 13.6. Middleware Order
 
 **✅ DO**:
 
@@ -1336,7 +1910,7 @@ app.use(requestLogger) // Before context setup
 app.use(requestContext())
 ```
 
-### 10.7. Async/Await Patterns
+### 13.7. Async/Await Patterns
 
 **✅ DO**:
 
@@ -1365,7 +1939,7 @@ const users = await getUsers()
 const posts = await getPosts() // Waits for users unnecessarily
 ```
 
-### 10.8. Security
+### 13.8. Security
 
 **✅ DO**:
 
@@ -1392,7 +1966,7 @@ const query = `SELECT * FROM users WHERE id = ${userId}`
 // Missing security headers
 ```
 
-### 10.9. Testing
+### 13.9. Testing
 
 **✅ DO**:
 
@@ -1424,7 +1998,7 @@ it('should work', () => {
 })
 ```
 
-### 10.10. Code Organization
+### 13.10. Code Organization
 
 **✅ DO**:
 
