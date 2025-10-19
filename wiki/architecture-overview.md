@@ -51,42 +51,83 @@ Project này là một **ExpressJS boilerplate** với kiến trúc Layered Arch
 ### 1.3. Project Structure
 
 ```
-src/
-├── apps/                     # Application entry points
-│   └── main.js              # Main app entry (orchestrator)
-├── configs/                  # Configuration layer
-│   ├── env-schema.js        # Environment validation (Joi)
-│   └── app.config.js        # Application config (merged by env)
-├── core/                     # Core cross-cutting concerns
-│   ├── constants/           # Constants (HTTP status, log levels)
-│   ├── helpers/             # Helpers (error, logger, validator, request-context, http-response)
-│   ├── utils/               # Utilities (common, security, type-check)
-│   └── Throwable.js         # Interface for error/response objects
-├── framework/               # Express-specific layer
-│   ├── express.loader.js   # Express app factory
-│   ├── shutdown.helper.js  # Graceful shutdown system
-│   ├── helpers/             # Framework helpers
-│   │   ├── api.helper.js   # API utilities (PaginatedResponse, query params)
-│   │   └── mongodb.helper.js # MongoDB utilities (ObjectId helpers)
-│   └── middleware/         # Express middleware
-│       ├── request-context.middleware.js
-│       ├── request-logger.middleware.js
-│       ├── request-validator.middleware.js
-│       ├── add-response-time.middleware.js
-│       ├── not-found.middleware.js
-│       ├── error-handler.middleware.js
-│       └── wrap-controller.middleware.js
-└── modules/                 # Business modules
-    ├── main.route.js        # Main routes registry
-    └── _post_/              # Post module (example)
-        ├── mock-post.js     # Mock data
-        ├── post.route.js    # Routes
-        ├── services/        # Business logic
-        │   └── post.service.js
-        ├── usecases/        # Use cases (orchestration)
-        │   └── post-crud.usecase.js
-        └── validators/      # Validation schemas
-            └── post.validator.js
+expressjs/
+├── src/                     # Source code
+│   ├── apps/               # Application entry points
+│   │   └── main.js        # Main app entry (orchestrator)
+│   ├── configs/            # Configuration layer
+│   │   ├── env-schema.js  # Environment validation (Joi)
+│   │   ├── app.config.js  # Application config (merged by env)
+│   │   └── index.js       # Config exports
+│   ├── core/               # Core cross-cutting concerns
+│   │   ├── constants/     # Constants (HTTP status, log levels)
+│   │   │   ├── common.constant.js
+│   │   │   ├── http-status.constant.js
+│   │   │   ├── message.constant.js
+│   │   │   └── index.js
+│   │   ├── helpers/       # Helpers (error, logger, validator, request-context, http-response)
+│   │   │   ├── error.helper.js
+│   │   │   ├── logger.helper.js
+│   │   │   ├── validator.helper.js
+│   │   │   ├── request-context.helper.js
+│   │   │   ├── http-response.helper.js
+│   │   │   └── index.js
+│   │   ├── utils/         # Utilities (common, security, type-check)
+│   │   │   ├── common.util.js
+│   │   │   ├── security.util.js
+│   │   │   ├── type-check.util.js
+│   │   │   ├── index.js
+│   │   │   └── tests/     # Unit tests
+│   │   │       ├── security.util.spec.js
+│   │   │       └── type-check.util.spec.js
+│   │   └── Throwable.js   # Interface for error/response objects
+│   ├── framework/          # Express-specific layer
+│   │   ├── express.loader.js   # Express app factory
+│   │   ├── shutdown.helper.js  # Graceful shutdown system
+│   │   ├── helpers/       # Framework helpers
+│   │   │   ├── api.helper.js   # API utilities (PaginatedResponse, query params)
+│   │   │   ├── mongodb.helper.js # MongoDB utilities (ObjectId helpers)
+│   │   │   └── index.js
+│   │   └── middleware/    # Express middleware
+│   │       ├── request-context.middleware.js
+│   │       ├── request-logger.middleware.js
+│   │       ├── request-validator.middleware.js
+│   │       ├── add-response-time.middleware.js
+│   │       ├── not-found.middleware.js
+│   │       ├── error-handler.middleware.js
+│   │       ├── wrap-controller.middleware.js
+│   │       ├── index.js
+│   │       └── tests/     # Middleware tests
+│   │           └── request-validator.security.spec.js
+│   └── modules/            # Business modules
+│       ├── main.route.js   # Main routes registry
+│       ├── authentication/ # Auth module (planned)
+│       └── _post_/        # Post module (example)
+│           ├── mock-post.js     # Mock data
+│           ├── post.route.js    # Routes
+│           ├── services/        # Business logic
+│           │   └── post.service.js
+│           ├── usecases/        # Use cases (orchestration)
+│           │   └── post-crud.usecase.js
+│           └── validators/      # Validation schemas
+│               └── post.validator.js
+├── dist/                    # Compiled output (Babel)
+├── logs/                    # Application logs (Winston)
+├── scripts/                 # Automation scripts
+│   ├── automate-cli.sh
+│   ├── release-dry-run.sh
+│   └── release-help.sh
+├── wiki/                    # Project documentation
+│   ├── architecture-overview.md
+│   ├── release-convention.md
+│   └── workflow.png
+├── babel.config.js         # Babel configuration
+├── eslint.config.mjs       # ESLint configuration
+├── jsconfig.json           # JavaScript config (path aliases)
+├── nodemon.json            # Nodemon configuration
+├── package.json            # Dependencies & scripts
+├── pnpm-lock.yaml          # Lock file
+└── README.md               # Project README
 ```
 
 ---
