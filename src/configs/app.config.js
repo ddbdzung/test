@@ -1,7 +1,7 @@
-import logger from '@/helpers/logger.helper'
 import path from 'path'
 
-import { merge } from '@/utils/common.util'
+import { logger } from '@/core/helpers'
+import { merge } from '@/core/utils'
 
 // Import validated environment variables
 import env from './env-schema'

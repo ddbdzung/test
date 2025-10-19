@@ -1,8 +1,8 @@
 import { config } from 'dotenv-safe'
 import path from 'path'
 
-import { ENVIRONMENT } from '@/core/constants/common.constant'
-import { Joi, validate } from '@/core/helpers/validator.helper'
+import { ENVIRONMENT } from '@/core/constants'
+import { Joi, validate } from '@/core/helpers'
 
 config({
   path: path.join(process.cwd(), '.env'),

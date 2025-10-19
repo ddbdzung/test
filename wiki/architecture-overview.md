@@ -1473,15 +1473,6 @@ post.model.js
 ```js
 // Config
 import config from '@/configs'
-// Framework
-import { createApp } from '@/framework/express.loader'
-// Middleware
-import { requestValidator } from '@/framework/middleware/request-validator.middleware'
-import { wrapController } from '@/framework/middleware/wrap-controller.middleware'
-import {
-  registerShutdownTask,
-  setupGracefulShutdown,
-} from '@/framework/shutdown.helper'
 // Errors
 import {
   BaseError,
@@ -1492,13 +1483,22 @@ import {
 import logger from '@/helpers/logger.helper'
 // Validation
 import { Joi, validate } from '@/helpers/validator.helper'
+// Utils
+import { merge, pick, snooze } from '@/utils/common.util'
+import { deepSanitize, isDangerousKey } from '@/utils/security.util'
 
 // Context
 import { requestContextHelper } from '@/core/helpers/request-context.helper'
 
-// Utils
-import { merge, pick, snooze } from '@/utils/common.util'
-import { deepSanitize, isDangerousKey } from '@/utils/security.util'
+// Framework
+import { createApp } from '@/framework/express.loader'
+// Middleware
+import { requestValidator } from '@/framework/middleware/request-validator.middleware'
+import { wrapController } from '@/framework/middleware/wrap-controller.middleware'
+import {
+  registerShutdownTask,
+  setupGracefulShutdown,
+} from '@/framework/shutdown.helper'
 ```
 
 ### Common Patterns
@@ -1507,13 +1507,14 @@ import { deepSanitize, isDangerousKey } from '@/utils/security.util'
 
 ```js
 import config from '@/configs'
+
+import { APP_NAME } from '@/core/constants/common.constant'
+
 import { createApp } from '@/framework/express.loader'
 import {
   registerShutdownTask,
   setupGracefulShutdown,
 } from '@/framework/shutdown.helper'
-
-import { APP_NAME } from '@/core/constants/common.constant'
 
 // Create app with routes
 const app = createApp(APP_NAME.MAIN, app => {
