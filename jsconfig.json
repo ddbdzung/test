@@ -53,12 +53,8 @@
     "paths": {
       "@/*": ["./*"],
       "@/core/*": ["core/*"],
-      "@/config/*": ["config/*"],
       "@/configs/*": ["configs/*"],
-      "@/services/*": ["services/*"],
       "@/constants/*": ["core/constants/*"],
-      "@/helpers/*": ["core/helpers/*"],
-      "@/utils/*": ["core/utils/*"],
       "@/framework/*": ["framework/*"],
       "@/modules/*": ["modules/*"]
     }

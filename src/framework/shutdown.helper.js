@@ -1,7 +1,7 @@
 // lifecycle/shutdown.js
 import process from 'process'
 
-import logger from '@/core/helpers/logger.helper'
+import { logger } from '@/core/helpers'
 
 const cleanupTasks = new Set()
 let isInitialized = false

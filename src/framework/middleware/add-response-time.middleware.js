@@ -1,4 +1,4 @@
-import { requestContextHelper } from '@/core/helpers/request-context.helper'
+import { requestContextHelper } from '@/core/helpers'
 
 export const addResponseTime = (req, res, next) => {
   const originalWriteHead = res.writeHead

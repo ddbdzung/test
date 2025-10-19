@@ -1,8 +1,7 @@
 import morgan from 'morgan'
 
-import { CURRENT_ENV, ENVIRONMENT } from '@/core/constants/common.constant'
-import logger from '@/core/helpers/logger.helper'
-import { requestContextHelper } from '@/core/helpers/request-context.helper'
+import { CURRENT_ENV, ENVIRONMENT } from '@/core/constants'
+import { logger, requestContextHelper } from '@/core/helpers'
 
 const SKIP_PATHS = ['/healthz', '/favicon']
 const isProduction = CURRENT_ENV === ENVIRONMENT.PRODUCTION
@@ -30,7 +29,7 @@ morgan.token(
 // Format tùy chỉnh (dễ đọc & phân tích)
 const format = `${isProduction ? ':remote-addr' : ''} :method :url :status :res[content-length] - :response-time ms [userId=:user reqId=:id]`
 
-let requestLogger = (req, res, next) => next()
+let requestLogger = (_req, _res, next) => next()
 if ([ENVIRONMENT.PRODUCTION, ENVIRONMENT.STAGING].includes(CURRENT_ENV))
   requestLogger = morgan(format, { stream, skip })
 else if (CURRENT_ENV === ENVIRONMENT.DEVELOPMENT)

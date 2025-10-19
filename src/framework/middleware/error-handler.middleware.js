@@ -1,15 +1,14 @@
-import { CURRENT_ENV, ENVIRONMENT } from '@/core/constants/common.constant'
-import { HTTP_STATUS } from '@/core/constants/http-status.constant'
 import {
+  CURRENT_ENV,
   DEFAULT_ERROR_CODE,
   DEFAULT_ERROR_MESSAGE,
   DEFAULT_ERROR_NAME,
-} from '@/core/constants/message.constant'
-import { BaseError } from '@/core/helpers/error.helper'
-import { HttpResponse } from '@/core/helpers/http-response.helper'
-import logger from '@/core/helpers/logger.helper'
+  ENVIRONMENT,
+  HTTP_STATUS,
+} from '@/core/constants'
+import { BaseError, HttpResponse, logger } from '@/core/helpers'
 
-export const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, _req, res, next) => {
   const isProduction = CURRENT_ENV === ENVIRONMENT.PRODUCTION
   try {
     if (!err || res.headersSent) {

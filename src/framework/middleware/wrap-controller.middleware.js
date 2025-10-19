@@ -1,8 +1,10 @@
-import { TIMEOUT_CONTROLLER } from '@/core/constants/common.constant'
-import { HTTP_STATUS } from '@/core/constants/http-status.constant'
-import { BaseError } from '@/core/helpers/error.helper'
-import { HttpResponse } from '@/core/helpers/http-response.helper'
-import { ensureObject, snooze } from '@/core/utils/common.util'
+import {
+  HTTP_STATUS,
+  HTTP_STATUS_MESSAGE,
+  TIMEOUT_CONTROLLER,
+} from '@/core/constants'
+import { BaseError, HttpResponse } from '@/core/helpers'
+import { ensureObject, snooze } from '@/core/utils'
 
 export const wrapController = (controllerFn, options) => {
   // Validate
@@ -50,7 +52,13 @@ export const wrapController = (controllerFn, options) => {
         return
       }
 
-      res.json(new HttpResponse(HTTP_STATUS.OK, result).toJSON())
+      res.json(
+        new HttpResponse(
+          HTTP_STATUS.OK,
+          result,
+          HTTP_STATUS_MESSAGE.OK
+        ).toJSON()
+      )
       next()
     } catch (error) {
       // Error thrown from controller fn so it's operational error

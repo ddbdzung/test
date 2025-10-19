@@ -23,12 +23,10 @@ module.exports = {
         root: ['./src'],
         alias: {
           '@/core': './src/core',
-          '@/config': './src/config',
           '@/configs': './src/configs',
           '@/constants': './src/core/constants',
-          '@/helpers': './src/core/helpers',
-          '@/utils': './src/core/utils',
           '@/framework': './src/framework',
+          '@/modules': './src/modules',
         },
       },
     ],

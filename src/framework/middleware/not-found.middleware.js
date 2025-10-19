@@ -1,4 +1,4 @@
-import { NotFoundError } from '@/core/helpers/error.helper'
+import { NotFoundError } from '@/core/helpers'
 
 export const notFound = (req, res, next) => {
   const notFoundError = new NotFoundError('', req.originalUrl)
