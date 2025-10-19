@@ -1,6 +1,6 @@
 import {
   HTTP_STATUS,
-  HTTP_STATUS_MESSAGE,
+  HTTP_STATUS_MESSAGE_CODE_MAP,
 } from '@/constants/http-status.constant'
 
 /**
@@ -18,7 +18,7 @@ export class HttpResponse {
     this.statusCode = statusCode || HTTP_STATUS.OK
     this.success = statusCode >= 200 && statusCode < 300
     this.data = data
-    this.message = message || HTTP_STATUS_MESSAGE[this.statusCode]
+    this.message = message || HTTP_STATUS_MESSAGE_CODE_MAP[this.statusCode]
     this.metadata = metadata
     this.timestamp = new Date().toISOString()
   }

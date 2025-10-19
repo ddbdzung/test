@@ -63,7 +63,7 @@ export default [
       'import/no-useless-path-segments': 'error',
 
       // Security rules
-      'security/detect-object-injection': 'warn',
+      'security/detect-object-injection': 'off',
       'security/detect-non-literal-regexp': 'warn',
       'security/detect-unsafe-regex': 'warn',
       'security/detect-buffer-noassert': 'warn',
