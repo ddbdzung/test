@@ -3,7 +3,7 @@ import { Router } from 'express'
 import { HTTP_STATUS } from '@/core/constants'
 import { HttpResponse } from '@/core/helpers'
 
-import { PaginatedResponse } from '@/framework/helpers'
+import { PaginatedResponse, t } from '@/framework/helpers'
 import { requestValidator, wrapController } from '@/framework/middleware'
 
 import { postCrudUsecase } from './usecases/post-crud.usecase'
@@ -23,7 +23,8 @@ router.post(
   wrapController(async req => {
     return new HttpResponse(
       HTTP_STATUS.CREATED,
-      await postCrudUsecase.createOnePostUsecase(req.body)
+      await postCrudUsecase.createOnePostUsecase(req.body),
+      t('common:system.service_name')
     )
   })
 )

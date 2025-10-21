@@ -1,5 +1,6 @@
 export * from './add-response-time.middleware'
 export * from './error-handler.middleware'
+export * from './localize.middleware'
 export * from './not-found.middleware'
 export * from './request-context.middleware'
 export * from './request-logger.middleware'

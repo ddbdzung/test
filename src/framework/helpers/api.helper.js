@@ -11,7 +11,6 @@ export const stdQueryParams = {
   limit: Joi.number().max(1_000).default(10).optional(),
   q: Joi.string().max(256).trim().optional(), // search term
   sortBy: Joi.string().pattern(SORT_BY_REGEX).optional(),
-  // sorts: Joi.array().items(Joi.string()).min(1).optional(),
   fields: Joi.array().items(Joi.string()).min(1).optional(),
 }
 

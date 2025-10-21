@@ -7,6 +7,7 @@ import { ValidationError, logger } from '@/core/helpers'
 
 import { addResponseTime } from '@/framework/middleware/add-response-time.middleware'
 import { errorHandler } from '@/framework/middleware/error-handler.middleware'
+import { i18nMiddleware } from '@/framework/middleware/localize.middleware'
 import { notFound } from '@/framework/middleware/not-found.middleware'
 import { requestContext } from '@/framework/middleware/request-context.middleware'
 import { requestLogger } from '@/framework/middleware/request-logger.middleware'
@@ -15,6 +16,7 @@ export const createApp = (name, callback = () => {}) => {
   logger.info(`Creating Express Application '${name}'...`)
   const app = express()
 
+  app.use(i18nMiddleware())
   app.use(
     requestContext({
       extractUserId: req => req.user?.id,

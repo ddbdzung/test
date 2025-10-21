@@ -3,13 +3,13 @@ import {
   HTTP_STATUS_MESSAGE,
   TIMEOUT_CONTROLLER,
 } from '@/core/constants'
-import { BaseError, HttpResponse } from '@/core/helpers'
+import { BaseError, HttpResponse, InternalServerError } from '@/core/helpers'
 import { ensureObject, snooze } from '@/core/utils'
 
 export const wrapController = (controllerFn, options) => {
   // Validate
   if (typeof controllerFn !== 'function') {
-    throw new BaseError('Controller function is required', {
+    throw new InternalServerError('Controller function is required', {
       isOperational: false,
     })
   }

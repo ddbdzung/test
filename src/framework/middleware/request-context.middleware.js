@@ -1,9 +1,5 @@
 import { REQUEST_ID_KEY } from '@/core/constants'
-import {
-  BaseError,
-  InternalServerError,
-  requestContextHelper,
-} from '@/core/helpers'
+import { InternalServerError, requestContextHelper } from '@/core/helpers'
 import { ensureObject } from '@/core/utils'
 
 /**
@@ -31,18 +27,17 @@ export const requestContext = options => {
   const { extractUserId, extractMetadata } = options
 
   if (extractUserId && typeof extractUserId !== 'function') {
-    throw new BaseError('extractUserId must be a function')
+    throw new InternalServerError('extractUserId must be a function')
   }
 
   if (extractMetadata && typeof extractMetadata !== 'function') {
-    throw new BaseError('extractMetadata must be a function')
+    throw new InternalServerError('extractMetadata must be a function')
   }
 
   return (req, res, next) => {
     try {
       // Generate or use existing requestId
       const requestId =
-        // eslint-disable-next-line security/detect-object-injection
         req.headers[REQUEST_ID_KEY] || requestContextHelper.getRequestId()
 
       // Build initial context
