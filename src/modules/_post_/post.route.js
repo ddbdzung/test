@@ -1,9 +1,11 @@
+import config from '@/configs'
 import { Router } from 'express'
 
 import { HTTP_STATUS } from '@/core/constants'
 import { HttpResponse } from '@/core/helpers'
 
 import { PaginatedResponse, t } from '@/framework/helpers'
+import { setCache } from '@/framework/helpers/cache.helper'
 import { requestValidator, wrapController } from '@/framework/middleware'
 
 import { postCrudUsecase } from './usecases/post-crud.usecase'
@@ -40,11 +42,28 @@ router.get(
   '/',
   requestValidator(getListDto),
   wrapController(async req => {
+    const resp = await setCache({
+      model: 'post',
+      alias: 'post-getList',
+      expire: config.redis.defaultTTL,
+      queryParams: {
+        ...req.query,
+        nested: {
+          author: {
+            name: 'John Doe',
+            cities: ['Hanoi', 'HoChiMinh', 'DaNang'],
+            age: 20,
+          },
+        },
+      },
+    })
+
     const { list, total } = await postCrudUsecase.getListPostUsecase(req.query)
     return new PaginatedResponse(list, {
       page: req.query.page,
       limit: req.query.limit,
       total,
+      resp,
     })
   })
 )

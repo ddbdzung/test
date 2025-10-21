@@ -1,5 +1,6 @@
 import path from 'path'
 
+import { CURRENT_ENV, ENVIRONMENT } from '@/core/constants'
 import { logger } from '@/core/helpers'
 import { merge } from '@/core/utils'
 
@@ -23,6 +24,7 @@ const rawConfig = {
   all: {
     env: env.NODE_ENV,
     root: path.join(__dirname, '..'),
+    service: env.SERVICE, // Service name
 
     // Ports
     port: env.PORT,
@@ -35,6 +37,7 @@ const rawConfig = {
     // Redis
     redis: {
       uri: env.REDIS_URI,
+      defaultTTL: env.REDIS_DEFAULT_TTL,
     },
 
     // MongoDB Connections
@@ -42,7 +45,10 @@ const rawConfig = {
       connections: {
         main: {
           uri: env.MONGODB_URI,
-          options: {},
+          options: {
+            autoIndex: CURRENT_ENV !== ENVIRONMENT.PRODUCTION,
+            autoCreate: true,
+          },
         },
       },
     },
@@ -78,9 +84,12 @@ const rawConfig = {
 // Merge base config with environment-specific config
 const config = merge(rawConfig.all, rawConfig[rawConfig.all.env])
 
-logger.info('Application configuration loaded', {
-  environment: config.env,
-  port: config.port,
-})
+if (CURRENT_ENV === ENVIRONMENT.DEVELOPMENT) {
+  logger.info('Application configuration loaded', config)
+} else {
+  logger.info('Application configuration loaded', {
+    environment: config.env,
+  })
+}
 
 export default config

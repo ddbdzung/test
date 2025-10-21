@@ -1,3 +1,6 @@
+/*
+ * Author: Dzung Dang
+ */
 import {
   CURRENT_ENV,
   DEFAULT_ERROR_CODE,

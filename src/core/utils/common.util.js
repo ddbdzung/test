@@ -1,4 +1,3 @@
-/* eslint-disable security/detect-object-injection */
 import { isDangerousKey } from './security.util'
 import { isObject } from './type-check.util'
 
@@ -21,19 +20,44 @@ export const omit = (obj, keys) => {
 }
 
 /**
- * Ensures the provided value is a valid object; otherwise, returns the default value.
- * If the default value is not a valid object, it falls back to an empty object.
+ * Validates and merges options with defaults.
+ * Throws TypeError if options is invalid type (programming error).
  *
- * @param {*} val - The value to check.
- * @param {Object} [defaultValue={}] - The default value to return if val is not a valid object.
- * @returns {Object} The valid object (either val or defaultValue).
+ * @param {Object|undefined|null} options - Options to merge (undefined/null allowed)
+ * @param {Object} [defaults={}] - Default values
+ * @returns {Object} Merged options
+ * @throws {TypeError} When options is invalid type (array, string, number, etc)
+ *
+ * @example
+ * // Valid - undefined/null will use defaults
+ * mergeOptions(undefined, { timeout: 5000 }) // { timeout: 5000 }
+ * mergeOptions(null, { timeout: 5000 })      // { timeout: 5000 }
+ *
+ * @example
+ * // Valid - merge with defaults
+ * mergeOptions({ timeout: 3000 }, { timeout: 5000, retry: 3 })
+ * // { timeout: 3000, retry: 3 }
+ *
+ * @example
+ * // Invalid - throws TypeError
+ * mergeOptions("invalid", { timeout: 5000 })  // throws
+ * mergeOptions([1, 2], { timeout: 5000 })     // throws
  */
-export const ensureObject = (val, defaultValue = {}) => {
-  if (!isObject(defaultValue)) {
-    defaultValue = {}
+export const mergeOptions = (options, defaults = {}) => {
+  // Allow undefined/null (will use defaults only)
+  if (options === undefined || options === null) {
+    return { ...defaults }
   }
 
-  return isObject(val) ? val : defaultValue
+  // Reject invalid types - this is a programming error
+  if (!isObject(options)) {
+    throw new TypeError(`Options must be an object, got ${typeof options}`)
+  }
+
+  return {
+    ...defaults,
+    ...options,
+  }
 }
 
 export const merge = (target, ...sources) => {

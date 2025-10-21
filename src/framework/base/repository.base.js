@@ -1,3 +1,6 @@
+/*
+ * Author: Dzung Dang
+ */
 import { InternalServerError } from '@/core/helpers'
 
 // BASE REPOSITORY FOR MONGODB DATABASE - MONGOOSE ODM

@@ -4,6 +4,8 @@ import {
   getHttpStatusMessageCode,
 } from '@/constants/http-status.constant'
 
+import { mergeOptions } from '@/core/utils'
+
 /**
  * @typedef {Object} BaseErrorOptions
  * @property {number} [statusCode] - HTTP status code (e.g., 400, 500). Default: 500
@@ -279,14 +281,19 @@ export class InternalServerError extends BaseError {
   /**
    * @param {string} [message='Internal server error'] - Error message
    * @param {Error|null} [cause=null] - Original error that caused this
+   * @param {Object} [options={}] - Additional options
+   * @param {Object} [options.context={}] - Additional context data for debugging
    */
-  constructor(message = 'Internal server error', cause = null) {
-    super(message, {
-      statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      code: 'INTERNAL_ERROR',
-      cause,
-      isOperational: false, // Usually a programming error
-    })
+  constructor(message = 'Internal server error', cause = null, options = {}) {
+    super(
+      message,
+      mergeOptions(options, {
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        code: 'INTERNAL_ERROR',
+        cause,
+        isOperational: false, // Usually a programming error
+      })
+    )
   }
 }
 

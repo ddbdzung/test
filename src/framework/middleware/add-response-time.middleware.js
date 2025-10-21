@@ -1,3 +1,6 @@
+/*
+ * Author: Dzung Dang
+ */
 import { requestContextHelper } from '@/core/helpers'
 
 export const addResponseTime = (req, res, next) => {

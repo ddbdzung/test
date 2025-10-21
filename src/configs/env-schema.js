@@ -21,6 +21,8 @@ const envSchema = Joi.object({
     .valid(...Object.values(ENVIRONMENT))
     .default(ENVIRONMENT.DEVELOPMENT),
 
+  SERVICE: Joi.string().required(),
+
   // === Ports ===
   PORT: Joi.number().default(8000), // Main App Port
 
@@ -29,6 +31,12 @@ const envSchema = Joi.object({
 
   // === Security ===
   JWT_SECRET: Joi.string().min(32).required(),
+
+  REDIS_DEFAULT_TTL: Joi.number()
+    .integer()
+    .min(0)
+    .default(300)
+    .description('Default TTL for Redis in seconds'),
 
   // === Redis ===
   // REDIS_URI: Joi.string()

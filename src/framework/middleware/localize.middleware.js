@@ -1,3 +1,6 @@
+/*
+ * Author: Dzung Dang
+ */
 import middleware from 'i18next-http-middleware'
 
 import { getI18nInstance, initI18n } from '@/framework/helpers/i18n.helper.js'

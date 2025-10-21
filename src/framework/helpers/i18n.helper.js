@@ -1,9 +1,10 @@
+/*
+ * Author: Dzung Dang
+ */
 import i18next from 'i18next'
 import Backend from 'i18next-fs-backend'
 import middleware from 'i18next-http-middleware'
 import path from 'path'
-
-import { CURRENT_ENV, ENVIRONMENT } from '@/core/constants'
 
 /**
  * @typedef {import('i18next').InitOptions} I18nInitOptions
@@ -29,7 +30,7 @@ export function initI18n(options = {}) {
     preload = ['en', 'vi'],
     ns = ['common'],
     defaultNS = 'common',
-    debug = CURRENT_ENV !== ENVIRONMENT.PRODUCTION,
+    debug = false,
     localesPath = path.join(
       process.cwd(),
       'src',
