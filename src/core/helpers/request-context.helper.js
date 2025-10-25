@@ -30,13 +30,15 @@ class RequestContextHelper {
   /**
    * Get specific value from context
    * @param {string} key - Context key
-   * @returns {Error|null|*} Value or undefined
+   * @param {Object} cachedContext - Cached context
+   * @returns {null|*} Value or undefined
+   * @throws {BaseError} If key is not allowed or no context found
    */
   getContextValue(key, cachedContext = null) {
     const context = cachedContext || this.getContext()
-    if (isDangerousKey(key)) return new BaseError('Key is not allowed' + key)
+    if (!context) throw new BaseError('No context found')
+    if (isDangerousKey(key)) throw new BaseError(`Key is not allowed: ${key}`)
 
-    // eslint-disable-next-line security/detect-object-injection
     return context?.[key] ?? null
   }
 
@@ -44,12 +46,14 @@ class RequestContextHelper {
    * Set value in current context
    * @param {string} key - Context key
    * @param {*} value - Value to set
+   * @returns {Object} Context
+   * @throws {BaseError} If key is not allowed or no context found
    */
   setContextValue(key, value) {
     const context = this.getContext()
-    if (isDangerousKey(key)) return new BaseError('Key is not allowed' + key)
+    if (!context) throw new BaseError('No context found')
+    if (isDangerousKey(key)) throw new BaseError(`Key is not allowed: ${key}`)
 
-    // eslint-disable-next-line security/detect-object-injection
     context[key] = value
     return context
   }
