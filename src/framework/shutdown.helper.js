@@ -1,4 +1,6 @@
-// lifecycle/shutdown.js
+/*
+ * Author: Dzung Dang
+ */
 import process from 'process'
 
 import { logger } from '@/core/helpers'

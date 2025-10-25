@@ -9,10 +9,10 @@ import {
  */
 export class HttpResponse {
   /**
-   * @param {number} statusCode - HTTP status code
-   * @param {any} data - Data to send in the response
-   * @param {string} message - Message to send in the response
-   * @param {any} metadata - Metadata to send in the response
+   * @param {number} [statusCode] - HTTP status code
+   * @param {any} [data] - Data to send in the response
+   * @param {string} [message] - Message to send in the response
+   * @param {any} [metadata] - Metadata to send in the response
    */
   constructor(statusCode, data, message, metadata = {}) {
     this.statusCode = statusCode || HTTP_STATUS.OK

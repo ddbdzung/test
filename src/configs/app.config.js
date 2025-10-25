@@ -1,6 +1,7 @@
 import path from 'path'
+import util from 'util'
 
-import { logger } from '@/core/helpers'
+import { CURRENT_ENV, ENVIRONMENT } from '@/core/constants'
 import { merge } from '@/core/utils'
 
 // Import validated environment variables
@@ -23,18 +24,18 @@ const rawConfig = {
   all: {
     env: env.NODE_ENV,
     root: path.join(__dirname, '..'),
-
+    service: env.SERVICE, // Service name
+    apiEndpoint: env.API_ENDPOINT,
     // Ports
     port: env.PORT,
 
     apiRoot: env.API_ROOT,
 
-    // Security
-    jwtSecret: env.JWT_SECRET,
-
     // Redis
     redis: {
       uri: env.REDIS_URI,
+      defaultTTL: env.REDIS_DEFAULT_TTL,
+      cachePrefix: env.CACHE_PREFIX,
     },
 
     // MongoDB Connections
@@ -42,10 +43,21 @@ const rawConfig = {
       connections: {
         main: {
           uri: env.MONGODB_URI,
-          options: {},
+          options: {
+            autoIndex: CURRENT_ENV !== ENVIRONMENT.PRODUCTION,
+            autoCreate: true,
+          },
         },
       },
     },
+  },
+
+  kafka: {
+    clientId: env.KAFKA_CLIENTID,
+    brokers: [env.KAFKA_BROKER],
+    mechanism: env.KAFKA_MECHANISM,
+    username: env.KAFKA_USERNAME,
+    password: env.KAFKA_PASSWORD,
   },
 
   // === Test environment ===
@@ -78,9 +90,15 @@ const rawConfig = {
 // Merge base config with environment-specific config
 const config = merge(rawConfig.all, rawConfig[rawConfig.all.env])
 
-logger.info('Application configuration loaded', {
-  environment: config.env,
-  port: config.port,
-})
+if (CURRENT_ENV === ENVIRONMENT.DEVELOPMENT) {
+  console.log(
+    'Application configuration loaded',
+    util.inspect(config, { depth: null, colors: true })
+  )
+} else {
+  console.log('Application configuration loaded', {
+    environment: config.env,
+  })
+}
 
 export default config

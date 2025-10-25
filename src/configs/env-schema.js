@@ -21,19 +21,31 @@ const envSchema = Joi.object({
     .valid(...Object.values(ENVIRONMENT))
     .default(ENVIRONMENT.DEVELOPMENT),
 
+  SERVICE: Joi.string().required(),
+
   // === Ports ===
   PORT: Joi.number().default(8000), // Main App Port
 
   // === Network ===
   API_ROOT: Joi.string().allow('').default('api'),
 
-  // === Security ===
-  JWT_SECRET: Joi.string().min(32).required(),
+  KAFKA_CLIENTID: Joi.string().required(),
+  KAFKA_BROKERS: Joi.string().required(),
+  KAFKA_MECHANISM: Joi.string().required(),
+  KAFKA_USERNAME: Joi.string().required(),
+  KAFKA_PASSWORD: Joi.string().required(),
 
   // === Redis ===
-  // REDIS_URI: Joi.string()
-  //   .uri({ scheme: 'redis' })
-  //   .default('redis://localhost:6379'),
+  REDIS_URI: Joi.string()
+    .uri({ scheme: 'redis' })
+    .default('redis://localhost:6379'),
+  REDIS_DEFAULT_TTL: Joi.number()
+    .integer()
+    .min(0)
+    .default(300)
+    .description('Default TTL for Redis in seconds'),
+
+  CACHE_PREFIX: Joi.string().default('MY_APP'),
 
   // === MongoDB Connections ===
   MONGODB_URI: Joi.string()

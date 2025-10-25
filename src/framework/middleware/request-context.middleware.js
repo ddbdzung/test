@@ -1,6 +1,9 @@
+/*
+ * Author: Dzung Dang
+ */
 import { REQUEST_ID_KEY } from '@/core/constants'
 import { InternalServerError, requestContextHelper } from '@/core/helpers'
-import { ensureObject } from '@/core/utils'
+import { mergeOptions } from '@/core/utils'
 
 /**
  * @typedef {Object} RequestContextOptions
@@ -19,12 +22,10 @@ import { ensureObject } from '@/core/utils'
  * }));
  */
 export const requestContext = options => {
-  options = ensureObject(options, {
+  const { extractUserId, extractMetadata } = mergeOptions(options, {
     extractUserId: null,
     extractMetadata: null,
   })
-
-  const { extractUserId, extractMetadata } = options
 
   if (extractUserId && typeof extractUserId !== 'function') {
     throw new InternalServerError('extractUserId must be a function')
