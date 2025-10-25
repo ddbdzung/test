@@ -3,7 +3,8 @@
 > Tài liệu tổng hợp kiến trúc và patterns của ExpressJS CRUD project
 >
 > **Author:** Dang Duc B. Dzung (David)  
-> **Last Updated:** October 19, 2025
+> **Last Updated:** October 25, 2025  
+> **Version:** 2.0 (Full codebase sync)
 
 ---
 
@@ -18,8 +19,10 @@
 - [7. Error Handling Strategy](#7-error-handling-strategy)
 - [8. Request Context Management](#8-request-context-management)
 - [9. Validation & Security](#9-validation--security)
-- [10. Build & Development Workflow](#10-build--development-workflow)
-- [11. Best Practices & Patterns](#11-best-practices--patterns)
+- [10. Internationalization (i18n)](#10-internationalization-i18n)
+- [11. Caching Strategy](#11-caching-strategy)
+- [12. Build & Development Workflow](#12-build--development-workflow)
+- [13. Best Practices & Patterns](#13-best-practices--patterns)
 
 ---
 
@@ -374,6 +377,7 @@ const app = createApp(APP_NAME.MAIN, app => {
 
 ```js
 // Stage 1: Pre-route middleware (auto-registered)
+app.use(i18nMiddleware())                  // i18n localization (FIRST)
 app.use(requestContext({ ... }))           // AsyncLocalStorage context
 app.use(requestLogger)                     // Morgan + Winston logging
 app.use(addResponseTime)                   // X-Response-Time header
@@ -381,6 +385,7 @@ app.use(cors())                            // CORS headers
 app.use(compression())                     // Gzip compression
 app.use(helmet())                          // Security headers
 app.use(express.json())                    // JSON body parser
+app.use(express.json() error handler)      // Handle JSON parse errors
 app.use(express.urlencoded())              // URL-encoded parser
 
 // Stage 2: Routes (via callback parameter)
@@ -390,6 +395,19 @@ callback(app)
 app.use(notFound)                          // 404 handler
 app.use(errorHandler)                      // Global error handler
 ```
+
+**⚠️ IMPORTANT - Middleware Order Rationale**:
+
+1. **i18nMiddleware()** - FIRST để setup `req.t()` cho các middleware sau
+2. **requestContext()** - Setup AsyncLocalStorage context cho toàn bộ request
+3. **requestLogger** - Log sau khi có context (requestId, userId)
+4. **addResponseTime** - Hook vào res.writeHead() sớm
+5. **Security middleware** (cors, compression, helmet) - Trước khi parse body
+6. **Body parsers** - Parse request body
+7. **Routes** - Business logic
+8. **Error handlers** - LAST để catch tất cả errors
+
+**Order matters!** Sai thứ tự sẽ dẫn đến context bị mất, log thiếu thông tin, hoặc security headers không được set.
 
 ### 4.2. Graceful Shutdown System
 
@@ -436,6 +454,51 @@ Exit process (code 0 or 1)
 ```
 
 ### 4.3. Middleware Details
+
+#### 4.3.0. localize.middleware.js (i18nMiddleware)
+
+**Purpose**: Setup i18n localization cho Express với auto language detection.
+
+```js
+import { i18nMiddleware } from '@/framework/middleware/localize.middleware'
+
+app.use(
+  i18nMiddleware({
+    fallbackLng: 'en',
+    preload: ['en', 'vi', 'es'],
+  })
+)
+```
+
+**How It Works**:
+
+1. Initialize i18n instance via `initI18n()`
+2. Return `i18next-http-middleware` handler
+3. Inject `req.t()` function for translations
+4. Auto-detect language from:
+   - `Accept-Language` header (default)
+   - `?lang=vi` query parameter
+   - Cookie (if enabled)
+
+**Usage in Controllers**:
+
+```js
+app.get('/hello', (req, res) => {
+  res.json({
+    message: req.t('welcome'),
+    user: req.t('user.greeting', { name: 'John' }),
+  })
+})
+```
+
+**Language Detection Priority**:
+
+1. Query parameter (`?lang=vi`) - highest
+2. Accept-Language header
+3. Cookie (disabled by default)
+4. Fallback language (`en`)
+
+**⚠️ MUST BE FIRST** middleware để ensure `req.t()` available cho tất cả middleware/routes sau.
 
 #### 4.3.1. request-context.middleware.js
 
@@ -993,6 +1056,532 @@ Routes → Usecases → Services
 
 ---
 
+## 10. Internationalization (i18n)
+
+### 10.1. Overview
+
+Project supports **multi-language** via `i18next` với:
+
+- **Server-side translations**: `req.t()` trong controllers
+- **Auto language detection**: Header / query / cookie
+- **Namespace organization**: Modules có thể có namespaces riêng
+- **Fallback mechanism**: En → fallback language → key
+
+### 10.2. Architecture
+
+```
+src/
+├── framework/
+│   ├── helpers/
+│   │   └── i18n.helper.js          # Global i18n instance & utilities
+│   └── middleware/
+│       └── localize.middleware.js  # Express middleware wrapper
+└── locales/
+    ├── en/
+    │   └── common.json             # English translations
+    └── vi/
+        └── common.json             # Vietnamese translations
+```
+
+### 10.3. Setup & Configuration
+
+**Step 1: Initialize i18n** (in `express.loader.js`):
+
+```js
+import { i18nMiddleware } from '@/framework/middleware/localize.middleware'
+
+const app = express()
+app.use(i18nMiddleware()) // FIRST middleware
+```
+
+**Step 2: Create translation files**:
+
+```json
+// locales/en/common.json
+{
+  "welcome": "Welcome to our API",
+  "user": {
+    "notFound": "User with ID {{id}} not found",
+    "created": "User created successfully"
+  },
+  "validation": {
+    "required": "{{field}} is required",
+    "invalid": "{{field}} is invalid"
+  }
+}
+```
+
+```json
+// locales/vi/common.json
+{
+  "welcome": "Chào mừng đến API của chúng tôi",
+  "user": {
+    "notFound": "Không tìm thấy người dùng với ID {{id}}",
+    "created": "Tạo người dùng thành công"
+  },
+  "validation": {
+    "required": "{{field}} là bắt buộc",
+    "invalid": "{{field}} không hợp lệ"
+  }
+}
+```
+
+### 10.4. Usage Patterns
+
+**Pattern 1: In Request Context** (most common):
+
+```js
+router.get('/users/:id', async (req, res) => {
+  const user = await User.findById(req.params.id)
+  if (!user) {
+    throw new NotFoundError(req.t('user.notFound', { id: req.params.id }))
+  }
+
+  res.json({
+    message: req.t('user.found'),
+    data: user,
+  })
+})
+```
+
+**Pattern 2: Outside Request Context**:
+
+```js
+import { t } from '@/framework/helpers/i18n.helper'
+
+// In service layer or background jobs
+const message = t('user.created', { lng: 'vi', name: 'John' })
+logger.info(message)
+```
+
+**Pattern 3: Dynamic Language Switch**:
+
+```js
+import { changeLanguage } from '@/framework/helpers/i18n.helper'
+
+// Change default language
+await changeLanguage('vi')
+```
+
+### 10.5. Language Detection
+
+**Detection Order** (configurable):
+
+```js
+detection: {
+  order: ['header', 'querystring', 'cookie'],
+  lookupHeader: 'accept-language',      // Accept-Language: vi
+  lookupQuerystring: 'lang',            // ?lang=vi
+  caches: false                          // Don't cache in cookie
+}
+```
+
+**Examples**:
+
+```bash
+# Via header (default)
+curl -H "Accept-Language: vi" https://api.example.com/users
+
+# Via query parameter (override header)
+curl https://api.example.com/users?lang=vi
+
+# Via cookie (if enabled)
+curl -H "Cookie: i18next=vi" https://api.example.com/users
+```
+
+### 10.6. Best Practices
+
+**✅ DO**:
+
+```js
+// Use nested keys for organization
+req.t('user.validation.email.required')
+
+// Use interpolation
+req.t('user.greeting', { name: user.name })
+
+// Provide context
+req.t('item.count', { count: 5 }) // Pluralization support
+```
+
+**❌ DON'T**:
+
+```js
+// Hardcoded strings
+throw new Error('User not found') // ❌
+
+// Use req.t() correctly
+throw new NotFoundError(req.t('user.notFound', { id })) // ✅
+```
+
+### 10.7. Testing Translations
+
+```js
+import { exists, t } from '@/framework/helpers/i18n.helper'
+
+describe('i18n', () => {
+  it('should translate key', () => {
+    expect(t('welcome', { lng: 'en' })).toBe('Welcome to our API')
+    expect(t('welcome', { lng: 'vi' })).toBe('Chào mừng đến API của chúng tôi')
+  })
+
+  it('should check key existence', () => {
+    expect(exists('welcome', { lng: 'en' })).toBe(true)
+    expect(exists('nonexistent.key', { lng: 'en' })).toBe(false)
+  })
+})
+```
+
+---
+
+## 11. Caching Strategy
+
+### 11.1. Overview
+
+Project implements **Redis-based caching** với:
+
+- **Deterministic key generation**: Same query → same key
+- **TTL management**: Configurable expiration per cache
+- **User-specific caching**: Multi-tenant support
+- **Size monitoring**: Warn on large cache entries
+- **Auto-cleanup**: Graceful shutdown disconnect
+
+### 11.2. Architecture
+
+```
+framework/
+└── helpers/
+    ├── redis.helper.js      # Low-level Redis connection
+    └── cache.helper.js      # High-level caching utilities
+```
+
+**Layer Separation**:
+
+- `redis.helper.js`: Connection management, auto-reconnect, graceful shutdown
+- `cache.helper.js`: Key generation, serialization, TTL handling
+
+### 11.3. Redis Connection Management
+
+**Features**:
+
+```js
+import {
+  connectRedis,
+  disconnectRedis,
+  getClient,
+} from '@/framework/helpers/redis.helper'
+
+// Connect (in app startup)
+await connectRedis()
+
+// Get client (auto-connect if needed)
+const client = await getClient()
+await client.set('key', 'value', { EX: 60 })
+const value = await client.get('key')
+
+// Disconnect (auto-registered in shutdown)
+await disconnectRedis()
+```
+
+**Connection State Machine**:
+
+```
+┌─────────────────┐
+│  client = null  │ ──getClient()──> [connecting] ──success──> [connected]
+└─────────────────┘                      │                         │
+         ▲                               │                         │
+         │                               └──────error──────────────┘
+         │
+         └──────────────────────disconnectRedis()────────────────┘
+```
+
+**Singleton Pattern**: Prevents duplicate connections
+
+```js
+let client = null
+let isConnecting = false
+let connectionPromise = null
+
+export const getClient = async () => {
+  if (client?.isOpen) return client // ✅ Already connected
+  if (isConnecting) return connectionPromise // ⏳ Wait for pending
+
+  isConnecting = true
+  connectionPromise = connectRedis() // 🔄 Connect now
+
+  try {
+    await connectionPromise
+    return client
+  } finally {
+    isConnecting = false
+    connectionPromise = null
+  }
+}
+```
+
+### 11.4. Cache Key Strategy
+
+**Key Format**:
+
+```
+{cachePrefix}_{service}:{key-value pairs}
+
+Example:
+myapp_main:model=post:alias=post-list:userId=123:query=a3d5e9f1
+```
+
+**Key Generation Pipeline**:
+
+```
+Input Query Params → Flatten Nested → Sort Keys → Serialize → Hash (prod) → Build Key
+```
+
+**Example**:
+
+```js
+// Input
+{
+  page: 1,
+  limit: 10,
+  filters: { status: 'active', author: 'john' }
+}
+
+// Step 1: Flatten
+{
+  page: 1,
+  limit: 10,
+  'filters.status': 'active',
+  'filters.author': 'john'
+}
+
+// Step 2: Sort & Serialize
+'filters.author=john|filters.status=active|limit=10|page=1'
+
+// Step 3: Hash (production only)
+'a3d5e9f1b2c4567890abcdef'
+
+// Step 4: Build Key
+'myapp_main:model=post:alias=post-list:query=a3d5e9f1b2c4567890abcdef'
+```
+
+**Why Deterministic Keys?**
+
+- ✅ Same query params → same key (regardless of order)
+- ✅ Easy debugging (readable in development)
+- ✅ Efficient (hashed in production to save memory)
+
+### 11.5. Cache Usage Patterns
+
+**Pattern 1: Cache-Aside (Lazy Loading)**:
+
+```js
+router.get(
+  '/',
+  wrapController(async req => {
+    // 1. Try cache first
+    const cache = await getCache({
+      model: 'post',
+      alias: 'post-list',
+      queryParams: req.query,
+    })
+
+    if (cache.success && cache.data) {
+      return new PaginatedResponse(cache.data.list, {
+        ...req.query,
+        total: cache.data.total,
+      })
+    }
+
+    // 2. Cache miss → fetch from DB
+    const { list, total } = await postService.getList(req.query)
+
+    // 3. Update cache for next request
+    await setCache({
+      model: 'post',
+      alias: 'post-list',
+      queryParams: req.query,
+      data: { list, total },
+      expire: 60, // 1 minute
+    })
+
+    return new PaginatedResponse(list, { ...req.query, total })
+  })
+)
+```
+
+**Pattern 2: Write-Through Cache**:
+
+```js
+router.post(
+  '/',
+  wrapController(async req => {
+    // 1. Create in DB
+    const post = await postService.create(req.body)
+
+    // 2. Invalidate list cache
+    await delCache({
+      model: 'post',
+      alias: 'post-list',
+      queryParams: {}, // Delete all list caches
+    })
+
+    // 3. Cache individual post
+    await setCache({
+      model: 'post',
+      alias: 'post-detail',
+      queryParams: { id: post.id },
+      data: post,
+      expire: 300, // 5 minutes
+    })
+
+    return post
+  })
+)
+```
+
+**Pattern 3: User-Specific Cache**:
+
+```js
+// Cache per user
+await setCache({
+  model: 'user-dashboard',
+  alias: 'dashboard-stats',
+  userId: req.user.id, // User-specific
+  queryParams: { period: '7d' },
+  data: stats,
+  expire: 600, // 10 minutes
+})
+
+// Get user's cache
+const cache = await getCache({
+  model: 'user-dashboard',
+  alias: 'dashboard-stats',
+  userId: req.user.id,
+  queryParams: { period: '7d' },
+})
+```
+
+### 11.6. Cache Invalidation Strategies
+
+**Strategy 1: Time-Based (TTL)**:
+
+```js
+// Short TTL for frequently changing data
+await setCache({ ..., expire: 60 })        // 1 minute
+
+// Long TTL for static data
+await setCache({ ..., expire: 86400 })     // 24 hours
+
+// No expiration (manual invalidation)
+await setCache({ ..., expire: 0 })         // Never expire
+```
+
+**Strategy 2: Event-Based**:
+
+```js
+// On create/update/delete → invalidate related caches
+router.post('/', async (req, res) => {
+  await postService.create(req.body)
+
+  // Invalidate list caches
+  await delCache({ model: 'post', alias: 'post-list' })
+  await delCache({ model: 'post', alias: 'post-count' })
+})
+```
+
+**Strategy 3: Cache Warming**:
+
+```js
+// Pre-populate cache during low traffic
+async function warmCache() {
+  const popularPosts = await postService.getPopular()
+
+  for (const post of popularPosts) {
+    await setCache({
+      model: 'post',
+      alias: 'post-detail',
+      queryParams: { id: post.id },
+      data: post,
+      expire: 3600,
+    })
+  }
+}
+
+// Run periodically via cron or queue
+```
+
+### 11.7. Cache Monitoring
+
+**Size Monitoring**:
+
+```js
+// Automatically warns on large entries
+if (sizeInMB > 100) {
+  logger.warn('Large cache entry', { key, sizeMB })
+}
+```
+
+**Cache Metadata**:
+
+```js
+// Injected automatically
+{
+  ...yourData,
+  _cachedAt: 1729876543210,   // Timestamp
+  _expire: 60                  // TTL in seconds
+}
+```
+
+**Debugging**:
+
+```bash
+# Development: Keys are human-readable
+myapp_main:model=post:alias=post-list:query=page=1|limit=10
+
+# Production: Keys are hashed for efficiency
+myapp_main:model=post:alias=post-list:query=a3d5e9f1b2c4
+```
+
+### 11.8. Best Practices
+
+**✅ DO**:
+
+```js
+// Use appropriate TTL
+await setCache({ ..., expire: 60 })     // Frequent changes
+await setCache({ ..., expire: 3600 })   // Stable data
+
+// Use alias for clarity
+await setCache({ model: 'post', alias: 'post-popular-list' })
+
+// Handle cache errors gracefully
+const cache = await getCache({ ... })
+if (!cache.success) {
+  logger.warn('Cache miss, fetching from DB', cache.error)
+  // Fallback to DB
+}
+
+// Invalidate on write operations
+await postService.create(data)
+await delCache({ model: 'post', alias: 'post-list' })
+```
+
+**❌ DON'T**:
+
+```js
+// Don't cache without expiration
+await setCache({ ..., expire: 0 })      // ❌ Cache forever
+
+// Don't cache large objects blindly
+await setCache({ data: hugeArray })     // ❌ Check size first
+
+// Don't forget error handling
+const data = await getCache({ ... }).data  // ❌ Might be null
+if (data) { /* use data */ }               // ✅ Check first
+```
+
+---
+
 ## 6. Application Entry Point
 
 ### 6.1. apps/main.js - Bootstrap Orchestrator
@@ -1155,7 +1744,301 @@ GET /api/posts?fields=title&fields=createdAt
 GET /api/posts?page=1&limit=10&sortBy=createdAt&fields=title&fields=content
 ```
 
-### 7.2. mongodb.helper.js - MongoDB Utilities
+### 7.2. i18n.helper.js - Internationalization Helper
+
+**Purpose**: Global i18n instance và translation utilities để support multiple languages.
+
+**Core Functions**:
+
+```js
+import {
+  changeLanguage,
+  exists,
+  initI18n,
+  t,
+} from '@/framework/helpers/i18n.helper'
+
+// Initialize i18n (called once at app startup)
+initI18n({
+  fallbackLng: 'en',
+  preload: ['en', 'vi'],
+  ns: ['common'],
+  defaultNS: 'common',
+  localesPath: 'src/locales/{{lng}}/{{ns}}.json',
+})
+
+// Translate outside request context
+const message = t('welcome', { lng: 'vi' })
+const greeting = t('greeting', { name: 'John', lng: 'en' })
+
+// Check if translation key exists
+if (exists('user.notFound', { lng: 'en' })) {
+  // ...
+}
+
+// Change language dynamically
+await changeLanguage('vi')
+```
+
+**Configuration**:
+
+```js
+// Language detection order
+detection: {
+  order: ['header', 'querystring', 'cookie'],  // Priority order
+  lookupHeader: 'accept-language',             // Check Accept-Language header
+  lookupQuerystring: 'lang',                   // Check ?lang=vi
+  caches: false                                 // Don't cache in cookie
+}
+```
+
+**Usage in Controllers** (với middleware):
+
+```js
+// After i18nMiddleware is applied
+app.get('/hello', (req, res) => {
+  res.json({
+    message: req.t('welcome'), // Use request language
+    error: req.t('errors.notFound', { id: 123 }), // With interpolation
+  })
+})
+```
+
+**File Structure**:
+
+```
+src/locales/
+├── en/
+│   └── common.json       # English translations
+└── vi/
+    └── common.json       # Vietnamese translations
+```
+
+**Translation File Example** (`locales/en/common.json`):
+
+```json
+{
+  "welcome": "Welcome to our application",
+  "greeting": "Hello, {{name}}!",
+  "errors": {
+    "notFound": "Resource with ID {{id}} not found",
+    "validation": "Validation failed"
+  }
+}
+```
+
+### 7.3. redis.helper.js - Redis Connection Manager
+
+**Purpose**: Manage Redis connection lifecycle với auto-reconnect và graceful shutdown.
+
+**Core Functions**:
+
+```js
+import {
+  connectRedis,
+  disconnectRedis,
+  getClient,
+} from '@/framework/helpers/redis.helper'
+
+// Connect to Redis (typically in app startup)
+await connectRedis()
+
+// Get client (auto-connect if needed)
+const client = await getClient()
+await client.set('key', 'value')
+const value = await client.get('key')
+
+// Disconnect (auto-registered in shutdown tasks)
+await disconnectRedis()
+```
+
+**Features**:
+
+- **Auto-reconnect**: Exponential backoff (100ms → 3000ms)
+- **Connection pooling**: Singleton pattern với lazy initialization
+- **Graceful shutdown**: Auto-registered cleanup task
+- **Error handling**: Event-based error logging
+
+**Connection State Management**:
+
+```js
+// Module state
+let client = null
+let isConnecting = false
+let connectionPromise = null // Prevent duplicate connections
+
+// getClient() ensures single connection
+export const getClient = async () => {
+  if (client?.isOpen) return client // Return existing
+
+  if (isConnecting && connectionPromise) {
+    // Wait for pending
+    return connectionPromise
+  }
+
+  isConnecting = true
+  connectionPromise = connectRedis()
+
+  try {
+    await connectionPromise
+    return client
+  } finally {
+    isConnecting = false
+    connectionPromise = null
+  }
+}
+```
+
+**Configuration** (from `app.config.js`):
+
+```js
+redis: {
+  uri: 'redis://localhost:6379',
+  defaultTTL: 300,                  // 5 minutes
+  cachePrefix: 'myapp'              // Key prefix
+}
+```
+
+### 7.4. cache.helper.js - Redis Caching Layer
+
+**Purpose**: High-level caching utilities với key generation, serialization, và TTL management.
+
+**Core Functions**:
+
+```js
+import { setCache, getCache, delCache } from '@/framework/helpers/cache.helper'
+
+// Set cache with TTL
+await setCache({
+  model: 'post',
+  alias: 'post-list',
+  userId: '123',                    // Optional: user-specific cache
+  queryParams: { page: 1, limit: 10 },
+  data: { list: [...], total: 100 },
+  expire: 60                        // 60 seconds
+})
+// Returns: { success: true, key: '...', expire: 60, error: null }
+
+// Get cache
+const result = await getCache({
+  model: 'post',
+  alias: 'post-list',
+  userId: '123',
+  queryParams: { page: 1, limit: 10 }
+})
+// Returns: { success: true, data: {...}, error: null }
+
+// Delete cache
+await delCache({
+  model: 'post',
+  alias: 'post-list',
+  userId: '123',
+  queryParams: { page: 1, limit: 10 }
+})
+```
+
+**Key Generation Strategy**:
+
+```js
+// Key format: {prefix}_{service}:{key-value pairs}
+// Example: myapp_main:model=post:alias=post-list:userId=123:query=abc123def
+
+buildKey({ model, alias, userId, queryParams })
+// 1. Flatten nested queryParams
+// 2. Sort keys deterministically
+// 3. Hash in production (MD5), raw in dev
+// 4. Build key with delimiter
+```
+
+**Query Params Normalization**:
+
+```js
+// Input
+{ page: 1, limit: 10, filters: { status: 'active' } }
+
+// Flattened
+{ page: 1, limit: 10, 'filters.status': 'active' }
+
+// Sorted & serialized
+'filters.status=active|limit=10|page=1'
+
+// Hashed (production only)
+'a3d5e9f1b2c4...'
+```
+
+**Features**:
+
+- **Deterministic keys**: Same query → same key
+- **Size monitoring**: Warns if cache > 100MB
+- **Metadata injection**: `_cachedAt`, `_expire` added to data
+- **Error handling**: Returns `{ success, data, error }` tuple
+- **User-specific caching**: Support multi-tenant scenarios
+
+**Usage Example in Route**:
+
+```js
+router.get(
+  '/',
+  requestValidator(getListDto),
+  wrapController(async req => {
+    // Try cache first
+    const cache = await getCache({
+      model: 'post',
+      alias: 'post-getList',
+      queryParams: req.query,
+    })
+
+    if (cache.success && cache.data) {
+      return new PaginatedResponse(cache.data.list, {
+        page: req.query.page,
+        limit: req.query.limit,
+        total: cache.data.total,
+      })
+    }
+
+    // Cache miss → fetch from DB
+    const { list, total } = await postCrudUsecase.getListPostUsecase(req.query)
+
+    // Set cache for next request
+    await setCache({
+      model: 'post',
+      alias: 'post-getList',
+      queryParams: req.query,
+      data: { list, total },
+      expire: 60,
+    })
+
+    return new PaginatedResponse(list, {
+      page: req.query.page,
+      limit: req.query.limit,
+      total,
+    })
+  })
+)
+```
+
+### 7.5. dayjs.helper.js - Date Utilities
+
+**Purpose**: Centralized date/time handling với timezone support.
+
+```js
+import dayjs, { DEFAULT_TIMEZONE } from '@/framework/helpers/dayjs.helper'
+
+// Default timezone: Asia/Ho_Chi_Minh
+const now = dayjs().tz(DEFAULT_TIMEZONE)
+const formatted = now.format('YYYY-MM-DD HH:mm:ss')
+
+// Parse and convert timezone
+const utcDate = dayjs.utc('2025-10-25')
+const localDate = utcDate.tz(DEFAULT_TIMEZONE)
+```
+
+**Plugins Enabled**:
+
+- `dayjs/plugin/utc` - UTC support
+- `dayjs/plugin/timezone` - Timezone conversion
+
+### 7.6. mongodb.helper.js - MongoDB Utilities
 
 **Purpose**: Utilities for MongoDB ObjectId operations and validation.
 
@@ -2086,30 +2969,74 @@ post.model.js
 ### Common Imports
 
 ```js
-// Config
+// ===== CONFIG =====
 import config from '@/configs'
+
+// ===== CORE LAYER =====
 // Errors
 import {
   BaseError,
+  ConflictError,
+  InternalServerError,
   NotFoundError,
+  UnauthorizedError,
   ValidationError,
-} from '@/helpers/error.helper'
+} from '@/core/helpers/error.helper'
+// HTTP Response
+import { HttpResponse } from '@/core/helpers/http-response.helper'
 // Logger
-import logger from '@/helpers/logger.helper'
-// Validation
-import { Joi, validate } from '@/helpers/validator.helper'
-// Utils
-import { merge, pick, snooze } from '@/utils/common.util'
-import { deepSanitize, isDangerousKey } from '@/utils/security.util'
-
+import logger from '@/core/helpers/logger.helper'
 // Context
 import { requestContextHelper } from '@/core/helpers/request-context.helper'
+// Validation
+import { Joi, validate } from '@/core/helpers/validator.helper'
+// Utils
+import { merge, mergeOptions, pick, snooze } from '@/core/utils/common.util'
+import { deepSanitize, isDangerousKey } from '@/core/utils/security.util'
+import { isEmpty, isNil, isObject } from '@/core/utils/type-check.util'
 
-// Framework
+// ===== FRAMEWORK LAYER =====
+// App Factory
 import { createApp } from '@/framework/express.loader'
-// Middleware
+// API
+import {
+  PaginatedResponse,
+  stdGetListQueryParams,
+} from '@/framework/helpers/api.helper'
+// Caching
+import { delCache, getCache, setCache } from '@/framework/helpers/cache.helper'
+// Date
+import dayjs, { DEFAULT_TIMEZONE } from '@/framework/helpers/dayjs.helper'
+// --- Helpers ---
+// i18n
+import {
+  changeLanguage,
+  exists,
+  initI18n,
+  t,
+} from '@/framework/helpers/i18n.helper'
+// MongoDB
+import {
+  connectMongoDB,
+  disconnectMongoDB,
+  isMongoIdDto,
+  isSameObjectId,
+  isValidObjectIdString,
+  makeObjectId,
+  toMongoIdDto,
+} from '@/framework/helpers/mongodb.helper'
+// Redis
+import {
+  connectRedis,
+  disconnectRedis,
+  getClient as getRedisClient,
+} from '@/framework/helpers/redis.helper'
+// --- Middleware ---
+import { i18nMiddleware } from '@/framework/middleware/localize.middleware'
+import { requestContext } from '@/framework/middleware/request-context.middleware'
 import { requestValidator } from '@/framework/middleware/request-validator.middleware'
 import { wrapController } from '@/framework/middleware/wrap-controller.middleware'
+// Graceful Shutdown
 import {
   registerShutdownTask,
   setupGracefulShutdown,
@@ -2189,6 +3116,170 @@ class UserService {
     }
   }
 }
+```
+
+**Cache-Aside Pattern**:
+
+```js
+router.get(
+  '/',
+  wrapController(async req => {
+    // 1. Try cache first
+    const cache = await getCache({
+      model: 'post',
+      alias: 'post-list',
+      queryParams: req.query,
+    })
+
+    if (cache.success && cache.data) {
+      return new PaginatedResponse(cache.data.list, {
+        ...req.query,
+        total: cache.data.total,
+      })
+    }
+
+    // 2. Cache miss → fetch from DB
+    const { list, total } = await postService.getList(req.query)
+
+    // 3. Set cache
+    await setCache({
+      model: 'post',
+      alias: 'post-list',
+      queryParams: req.query,
+      data: { list, total },
+      expire: 60,
+    })
+
+    return new PaginatedResponse(list, { ...req.query, total })
+  })
+)
+```
+
+**i18n Translation Pattern**:
+
+```js
+router.post(
+  '/',
+  wrapController(async req => {
+    const user = await userService.create(req.body)
+
+    return new HttpResponse(
+      201,
+      user,
+      req.t('user.created', { name: user.name }) // Translated message
+    )
+  })
+)
+
+// In error handling
+if (!user) {
+  throw new NotFoundError(req.t('user.notFound', { id: req.params.id }))
+}
+```
+
+**MongoDB ObjectId Validation**:
+
+```js
+const schema = {
+  params: Joi.object({
+    id: Joi.string().custom(toMongoIdDto).required(), // Validate & transform
+  }).unknown(true),
+}
+
+router.get(
+  '/:id',
+  requestValidator(schema),
+  wrapController(async req => {
+    // req.params.id is now ObjectId instance
+    const user = await User.findById(req.params.id)
+    if (!user) throw new NotFoundError('User', req.params.id)
+    return user
+  })
+)
+```
+
+**Complete CRUD with Cache Example**:
+
+```js
+import { Router } from 'express'
+
+import {
+  HTTP_STATUS,
+  HttpResponse,
+  PaginatedResponse,
+  delCache,
+  getCache,
+  requestValidator,
+  setCache,
+  wrapController,
+} from '@/framework/...'
+
+const router = Router()
+
+// LIST with cache
+router.get(
+  '/',
+  requestValidator(getListDto),
+  wrapController(async req => {
+    const cache = await getCache({
+      model: 'post',
+      alias: 'list',
+      queryParams: req.query,
+    })
+    if (cache.success && cache.data) {
+      return new PaginatedResponse(cache.data.list, {
+        ...req.query,
+        total: cache.data.total,
+      })
+    }
+
+    const { list, total } = await postService.getList(req.query)
+    await setCache({
+      model: 'post',
+      alias: 'list',
+      queryParams: req.query,
+      data: { list, total },
+      expire: 60,
+    })
+
+    return new PaginatedResponse(list, { ...req.query, total })
+  })
+)
+
+// CREATE with cache invalidation
+router.post(
+  '/',
+  requestValidator(createDto),
+  wrapController(async req => {
+    const post = await postService.create(req.body)
+
+    // Invalidate list cache
+    await delCache({ model: 'post', alias: 'list' })
+
+    return new HttpResponse(HTTP_STATUS.CREATED, post, req.t('post.created'))
+  })
+)
+
+// UPDATE with cache invalidation
+router.patch(
+  '/:id',
+  requestValidator(updateDto),
+  wrapController(async req => {
+    const post = await postService.update(req.params.id, req.body)
+
+    // Invalidate both detail and list cache
+    await delCache({
+      model: 'post',
+      alias: 'detail',
+      queryParams: { id: req.params.id },
+    })
+    await delCache({ model: 'post', alias: 'list' })
+
+    return new HttpResponse(HTTP_STATUS.OK, post, req.t('post.updated'))
+  })
+)
+
+export default router
 ```
 
 ---

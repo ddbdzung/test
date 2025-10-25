@@ -75,7 +75,6 @@ export const connectMongoDB = async (uri, options = {}) => {
 
     mongoose.connection.on('error', err => {
       logger.error('❌ MongoDB: connection error:', { err })
-      process.exit(-1)
     })
 
     return conn

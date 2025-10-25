@@ -60,11 +60,15 @@ export const requestContext = options => {
       // Set response header
       res.setHeader(REQUEST_ID_KEY, requestId)
 
-      requestContextHelper.runWithContext(context, () => {
-        next()
-      })
+      requestContextHelper.runWithContext(context, () => next())
     } catch (error) {
-      next(new InternalServerError('Request context unknown error', error))
+      next(
+        new InternalServerError('Request context unknown error', error, {
+          context: {
+            requestContextHelper,
+          },
+        })
+      )
     }
   }
 }
