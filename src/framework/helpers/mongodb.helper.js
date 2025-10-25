@@ -1,4 +1,8 @@
-import { Types } from 'mongoose'
+import mongoose from 'mongoose'
+
+import { InternalServerError, logger } from '@/core/helpers'
+
+import { registerShutdownTask } from '@/framework/shutdown.helper'
 
 const mongoIdPattern = new RegExp(/^[0-9a-f]{24}$/)
 
@@ -11,19 +15,21 @@ export const isValidObjectIdString = value => {
 }
 
 export const makeObjectId = value => {
-  if (!value) return new Types.ObjectId()
+  if (!value) return new mongoose.Types.ObjectId()
 
   if (!isValidObjectIdString(value)) return value
 
-  return new Types.ObjectId(value)
+  return new mongoose.Types.ObjectId(value)
 }
 
 export const isSameObjectId = (a, b) => {
   if (!a || !b) return false
 
   try {
-    const idA = a instanceof Types.ObjectId ? a : new Types.ObjectId(a)
-    const idB = b instanceof Types.ObjectId ? b : new Types.ObjectId(b)
+    const idA =
+      a instanceof mongoose.Types.ObjectId ? a : new mongoose.Types.ObjectId(a)
+    const idB =
+      b instanceof mongoose.Types.ObjectId ? b : new mongoose.Types.ObjectId(b)
     return idA.equals(idB)
   } catch {
     return false // nếu a hoặc b không phải là ObjectId hợp lệ
@@ -58,3 +64,32 @@ export const toMongoIdDto = (value, helpers) => {
 
   return makeObjectId(value)
 }
+
+export const connectMongoDB = async (uri, options = {}) => {
+  try {
+    const conn = await mongoose.connect(uri, options)
+
+    mongoose.connection.on('connected', () => {
+      logger.info('✅ MongoDB: connected!')
+    })
+
+    mongoose.connection.on('error', err => {
+      logger.error('❌ MongoDB: connection error:', { err })
+      process.exit(-1)
+    })
+
+    return conn
+  } catch (error) {
+    logger.error('❌ MongoDB: something went wrong', { error })
+    throw new InternalServerError('Failed to connect to MongoDB', error)
+  }
+}
+
+export const disconnectMongoDB = async () => {
+  if (mongoose.connection.readyState === 1) {
+    await mongoose.connection.close()
+    logger.info('✅ MongoDB: disconnected!')
+  }
+}
+
+registerShutdownTask(disconnectMongoDB, 'mongodb-disconnect')

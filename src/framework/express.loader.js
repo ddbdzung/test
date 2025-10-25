@@ -1,3 +1,6 @@
+/*
+ * Author: Dzung Dang
+ */
 import compression from 'compression'
 import cors from 'cors'
 import express from 'express'
@@ -13,7 +16,7 @@ import { requestContext } from '@/framework/middleware/request-context.middlewar
 import { requestLogger } from '@/framework/middleware/request-logger.middleware'
 
 export const createApp = (name, callback = () => {}) => {
-  logger.info(`Creating Express Application '${name}'...`)
+  logger.info(`Express Application '${name}': creating...`)
   const app = express()
 
   app.use(i18nMiddleware())
@@ -52,6 +55,6 @@ export const createApp = (name, callback = () => {}) => {
   app.use(notFound)
   app.use(errorHandler)
 
-  logger.info(`✅ Express Application '${name}' created successfully`)
+  logger.info(`✅ Express Application '${name}': created!`)
   return app
 }

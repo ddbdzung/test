@@ -1,10 +1,13 @@
+/*
+ * Author: Dzung Dang
+ */
 import {
   HTTP_STATUS,
   HTTP_STATUS_MESSAGE,
   TIMEOUT_CONTROLLER,
 } from '@/core/constants'
 import { BaseError, HttpResponse, InternalServerError } from '@/core/helpers'
-import { ensureObject, snooze } from '@/core/utils'
+import { mergeOptions, snooze } from '@/core/utils'
 
 export const wrapController = (controllerFn, options) => {
   // Validate
@@ -14,10 +17,9 @@ export const wrapController = (controllerFn, options) => {
     })
   }
 
-  options = ensureObject(options, { timeout: TIMEOUT_CONTROLLER.DEFAULT })
-
-  // Process
-  const { timeout = TIMEOUT_CONTROLLER.DEFAULT } = options
+  const { timeout } = mergeOptions(options, {
+    timeout: TIMEOUT_CONTROLLER.DEFAULT,
+  })
 
   return async (req, res, next) => {
     if (res.headersSent) {
@@ -46,15 +48,18 @@ export const wrapController = (controllerFn, options) => {
         return
       }
 
+      const convenientHttpStatusCode =
+        req?.method === 'POST' ? HTTP_STATUS.CREATED : HTTP_STATUS.OK
+
       if (result === undefined) {
-        res.json(new HttpResponse().toJSON())
+        res.json(new HttpResponse(convenientHttpStatusCode).toJSON())
         next()
         return
       }
 
       res.json(
         new HttpResponse(
-          HTTP_STATUS.OK,
+          convenientHttpStatusCode,
           result,
           HTTP_STATUS_MESSAGE.OK
         ).toJSON()

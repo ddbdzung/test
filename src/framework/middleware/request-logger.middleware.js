@@ -1,3 +1,6 @@
+/*
+ * Author: Dzung Dang
+ */
 import morgan from 'morgan'
 
 import { CURRENT_ENV, ENVIRONMENT } from '@/core/constants'

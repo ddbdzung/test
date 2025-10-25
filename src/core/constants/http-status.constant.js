@@ -1,4 +1,3 @@
-/* eslint-disable security/detect-object-injection */
 export const HTTP_STATUS_MESSAGE = {
   // Success
   OK: 'OK',

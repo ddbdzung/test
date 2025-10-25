@@ -1,9 +1,12 @@
+/*
+ * Author: Dzung Dang
+ */
 import { InternalServerError, Joi, ValidationError } from '@/core/helpers'
 import {
   deepSanitize,
-  ensureObject,
   isDangerousKey,
   isObject,
+  mergeOptions,
   pick,
 } from '@/core/utils'
 
@@ -87,12 +90,13 @@ const pickDefinedKeys = (schema, value) => {
 export const requestValidator = (schema, options) => {
   // Input validation
   if (!isObject(schema)) {
-    throw new Error('Schema must be a valid object')
+    throw new TypeError('Schema must be a valid object')
   }
 
-  options = ensureObject(options, { removeUnknown: true })
+  const { removeUnknown } = mergeOptions(options, {
+    removeUnknown: true,
+  })
 
-  /* eslint-disable security/detect-object-injection */
   // Safe: Object access is controlled by hardcoded requestKeys and dangerous keys are filtered
   return (req, _res, next) => {
     try {
@@ -142,7 +146,7 @@ export const requestValidator = (schema, options) => {
         setRequestProperty(key, {})
       }
 
-      if (!options.removeUnknown) {
+      if (!removeUnknown) {
         // Deep sanitize and assign all values
         for (const key of Object.keys(value)) {
           setRequestProperty(key, deepSanitize(value[key]))
@@ -173,5 +177,4 @@ export const requestValidator = (schema, options) => {
       next(new InternalServerError('Request validator unknown error', error))
     }
   }
-  /* eslint-enable security/detect-object-injection */
 }
