@@ -36,7 +36,6 @@ class RequestContextHelper {
    */
   getContextValue(key, cachedContext = null) {
     const context = cachedContext || this.getContext()
-    if (!context) throw new BaseError('No context found')
     if (isDangerousKey(key)) throw new BaseError(`Key is not allowed: ${key}`)
 
     return context?.[key] ?? null
@@ -51,7 +50,6 @@ class RequestContextHelper {
    */
   setContextValue(key, value) {
     const context = this.getContext()
-    if (!context) throw new BaseError('No context found')
     if (isDangerousKey(key)) throw new BaseError(`Key is not allowed: ${key}`)
 
     context[key] = value
