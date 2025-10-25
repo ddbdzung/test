@@ -29,12 +29,6 @@ const envSchema = Joi.object({
   // === Network ===
   API_ROOT: Joi.string().allow('').default('api'),
 
-  KAFKA_CLIENTID: Joi.string().required(),
-  KAFKA_BROKERS: Joi.string().required(),
-  KAFKA_MECHANISM: Joi.string().required(),
-  KAFKA_USERNAME: Joi.string().required(),
-  KAFKA_PASSWORD: Joi.string().required(),
-
   // === Redis ===
   REDIS_URI: Joi.string()
     .uri({ scheme: 'redis' })
