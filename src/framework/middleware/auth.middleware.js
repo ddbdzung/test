@@ -1,8 +1,8 @@
 import { UnauthorizedError } from '@/core/helpers'
 
 import {
-  getBackdoorData,
   getBiz,
+  getSmaxAppBackdoorData,
 } from '@/framework/integrations/biz.integration'
 
 /**
@@ -29,18 +29,14 @@ export const bizAuth = () => async (req, res, next) => {
   }
 }
 
-export const backdoorAuth = () => async (req, res, next) => {
+export const backdoorAuth = async (req, res, next) => {
   try {
     if (!req.headers?.authorization) {
       next(new UnauthorizedError())
       return
     }
 
-    const backdoorData = await getBackdoorData(
-      req.headers.authorization?.replace('Bearer', '')?.trim()
-    )
-
-    req.backdoor = backdoorData
+    req.backdoor = await getSmaxAppBackdoorData(req.headers?.authorization)
     next()
   } catch (error) {
     next(error)

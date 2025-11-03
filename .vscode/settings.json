@@ -32,6 +32,9 @@
     "strings": true
   },
   
+  // Editor word wrap
+  "editor.wordWrap": "off",
+  
   // Files to exclude from search/suggestions
   "files.exclude": {
     "**/node_modules": true,
