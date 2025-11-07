@@ -2,8 +2,9 @@ import { isDangerousKey } from './security.util'
 import { isObject } from './type-check.util'
 
 export const pick = (obj, keys) => {
+  if (!obj || typeof obj !== 'object') return {}
   return keys.reduce((acc, key) => {
-    if (obj[key] !== undefined) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
       acc[key] = obj[key]
     }
     return acc
@@ -11,8 +12,10 @@ export const pick = (obj, keys) => {
 }
 
 export const omit = (obj, keys) => {
-  return keys.reduce((acc, key) => {
-    if (obj[key] !== undefined) {
+  if (!obj || typeof obj !== 'object') return {}
+  const omitSet = new Set(keys)
+  return Object.keys(obj).reduce((acc, key) => {
+    if (!omitSet.has(key)) {
       acc[key] = obj[key]
     }
     return acc
