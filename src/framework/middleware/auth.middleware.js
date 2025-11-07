@@ -3,6 +3,7 @@ import { UnauthorizedError } from '@/core/helpers'
 import {
   getBiz,
   getSmaxAppBackdoorData,
+  // getSmaxFnbBackdoorData,
 } from '@/framework/integrations/biz.integration'
 
 /**
@@ -37,6 +38,7 @@ export const backdoorAuth = async (req, res, next) => {
     }
 
     req.backdoor = await getSmaxAppBackdoorData(req.headers?.authorization)
+    // req.backdoor = await getSmaxFnbBackdoorData(req.headers?.authorization)
     next()
   } catch (error) {
     next(error)

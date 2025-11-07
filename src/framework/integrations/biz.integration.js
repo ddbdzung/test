@@ -8,7 +8,7 @@ import {
 } from '@/core/helpers'
 
 import { getCache, setCache } from '@/framework/helpers'
-import { $get } from '@/framework/helpers/axios.helper'
+import { $get, $post } from '@/framework/helpers/axios.helper'
 
 /**
  * @typedef {Object} BizAuthMiddlewareResponse
@@ -91,17 +91,10 @@ export const getBiz = async (bizAlias, token) => {
 }
 
 export const getSmaxAppBackdoorData = async backdoorToken => {
-  console.log(`[biz.integration.js] backdoorToken:`, backdoorToken)
   try {
     const raw = await $get('backdoors/verify', {
       headers: { authorization: backdoorToken },
     })
-    // [
-    //   {
-    //     method: 'authService',
-    //     query: { backdoorToken },
-    //   },
-    // ],
 
     if (raw.data?.status !== HTTP_STATUS.OK) {
       throw new InternalServerError('', null, {
@@ -110,6 +103,41 @@ export const getSmaxAppBackdoorData = async backdoorToken => {
     }
 
     return raw.data.data
+  } catch (error) {
+    if (isAxiosError(error)) {
+      if (error.status === HTTP_STATUS.UNAUTHORIZED) {
+        throw new UnauthorizedError()
+      }
+
+      throw new InternalServerError('', error)
+    }
+
+    throw new InternalServerError('', error)
+  }
+}
+
+export const getSmaxFnbBackdoorData = async backdoorToken => {
+  try {
+    const raw = await $post(
+      'backdoor',
+      [{ method: 'authService', query: { backdoorToken } }],
+      { headers: { authorization: `Bearer ${backdoorToken}` } }
+    )
+
+    if (!raw.data?.[0]?.response) {
+      throw new InternalServerError('Invalid API response format')
+    }
+
+    const resp = raw.data[0]?.response || {}
+    const { status, data, message } = resp
+
+    if (status !== HTTP_STATUS.OK || !data) {
+      throw new InternalServerError(message || 'Backdoor not found', null, {
+        response: resp,
+      })
+    }
+
+    return data
   } catch (error) {
     if (isAxiosError(error)) {
       if (error.status === HTTP_STATUS.UNAUTHORIZED) {

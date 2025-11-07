@@ -1,10 +1,10 @@
-import { config } from 'dotenv-safe'
+import dotenv from 'dotenv'
 import path from 'path'
 
 import { ENVIRONMENT } from '@/core/constants'
 import { Joi, validate } from '@/core/helpers'
 
-config({
+dotenv.config({
   path: path.join(process.cwd(), '.env'),
   example: path.join(process.cwd(), '.env.example'),
 })

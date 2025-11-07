@@ -11,6 +11,11 @@ import {
 } from '@/core/constants'
 import { BaseError, HttpResponse, logger } from '@/core/helpers'
 
+import {
+  BackdoorError,
+  SmaxResponse,
+} from '@/framework/helpers/backdoor.helper'
+
 const safeErrorResp = {
   message: DEFAULT_ERROR_MESSAGE,
   name: DEFAULT_ERROR_NAME,
@@ -21,6 +26,12 @@ export const errorHandler = (err, _req, res, next) => {
   const isProduction = CURRENT_ENV === ENVIRONMENT.PRODUCTION
   try {
     if (!err || res.headersSent) {
+      next()
+      return
+    }
+
+    if (err instanceof SmaxResponse) {
+      res.status(err.getStatusCode()).json(err.toJSON())
       next()
       return
     }
@@ -38,6 +49,12 @@ export const errorHandler = (err, _req, res, next) => {
       if (isProduction && err.statusCode >= HTTP_STATUS.INTERNAL_SERVER_ERROR) {
         logger.error('HANDLED_ERROR', resp)
         res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json(safeErrorResp)
+        next()
+        return
+      }
+
+      if (err instanceof BackdoorError) {
+        res.status(err.getStatusCode()).json(err.toJSON())
         next()
         return
       }
