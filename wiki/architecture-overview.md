@@ -3,8 +3,8 @@
 > Tài liệu tổng hợp kiến trúc và patterns của ExpressJS CRUD project
 >
 > **Author:** Dang Duc B. Dzung (David)  
-> **Last Updated:** October 25, 2025  
-> **Version:** 2.0 (Full codebase sync)
+> **Last Updated:** November 7, 2025  
+> **Version:** 2.1 (Full codebase sync)
 
 ---
 
@@ -15,14 +15,16 @@
 - [3. Core Layer](#3-core-layer)
 - [4. Framework Layer](#4-framework-layer)
 - [5. Module Architecture](#5-module-architecture)
-- [6. Configuration System](#6-configuration-system)
-- [7. Error Handling Strategy](#7-error-handling-strategy)
-- [8. Request Context Management](#8-request-context-management)
-- [9. Validation & Security](#9-validation--security)
-- [10. Internationalization (i18n)](#10-internationalization-i18n)
-- [11. Caching Strategy](#11-caching-strategy)
-- [12. Build & Development Workflow](#12-build--development-workflow)
-- [13. Best Practices & Patterns](#13-best-practices--patterns)
+- [6. Application Entry Point](#6-application-entry-point)
+- [7. Framework Helpers](#7-framework-helpers)
+- [8. Configuration System](#8-configuration-system)
+- [9. Error Handling Strategy](#9-error-handling-strategy)
+- [10. Request Context Management](#10-request-context-management)
+- [11. Validation & Security](#11-validation--security)
+- [12. Internationalization (i18n)](#12-internationalization-i18n)
+- [13. Caching Strategy](#13-caching-strategy)
+- [14. Build & Development Workflow](#14-build--development-workflow)
+- [15. Best Practices & Patterns](#15-best-practices--patterns)
 
 ---
 
@@ -47,7 +49,11 @@ Project này là một **ExpressJS boilerplate** với kiến trúc Layered Arch
   "logger": "Winston 3.x",
   "testing": "Jest 29.x",
   "linter": "ESLint 9.x",
-  "formatter": "Prettier 3.x"
+  "formatter": "Prettier 3.x",
+  "database": "MongoDB (Mongoose 8.x)",
+  "cache": "Redis 5.x",
+  "i18n": "i18next 25.x",
+  "http-client": "Axios 1.x"
 }
 ```
 
@@ -66,7 +72,6 @@ expressjs/
 │   │   ├── constants/     # Constants (HTTP status, log levels)
 │   │   │   ├── common.constant.js
 │   │   │   ├── http-status.constant.js
-│   │   │   ├── message.constant.js
 │   │   │   └── index.js
 │   │   ├── helpers/       # Helpers (error, logger, validator, request-context, http-response)
 │   │   │   ├── error.helper.js
@@ -89,7 +94,12 @@ expressjs/
 │   │   ├── shutdown.helper.js  # Graceful shutdown system
 │   │   ├── helpers/       # Framework helpers
 │   │   │   ├── api.helper.js   # API utilities (PaginatedResponse, query params)
+│   │   │   ├── axios.helper.js # HTTP client utilities (wrapper for axios)
+│   │   │   ├── cache.helper.js # Redis caching utilities
+│   │   │   ├── dayjs.helper.js # Date utilities
+│   │   │   ├── i18n.helper.js  # i18n utilities
 │   │   │   ├── mongodb.helper.js # MongoDB utilities (ObjectId helpers)
+│   │   │   ├── redis.helper.js # Redis connection management
 │   │   │   └── index.js
 │   │   └── middleware/    # Express middleware
 │   │       ├── request-context.middleware.js
@@ -1056,9 +1066,9 @@ Routes → Usecases → Services
 
 ---
 
-## 10. Internationalization (i18n)
+## 12. Internationalization (i18n)
 
-### 10.1. Overview
+### 12.1. Overview
 
 Project supports **multi-language** via `i18next` với:
 
@@ -1067,7 +1077,7 @@ Project supports **multi-language** via `i18next` với:
 - **Namespace organization**: Modules có thể có namespaces riêng
 - **Fallback mechanism**: En → fallback language → key
 
-### 10.2. Architecture
+### 12.2. Architecture
 
 ```
 src/
@@ -1083,7 +1093,7 @@ src/
         └── common.json             # Vietnamese translations
 ```
 
-### 10.3. Setup & Configuration
+### 12.3. Setup & Configuration
 
 **Step 1: Initialize i18n** (in `express.loader.js`):
 
@@ -1126,7 +1136,7 @@ app.use(i18nMiddleware()) // FIRST middleware
 }
 ```
 
-### 10.4. Usage Patterns
+### 12.4. Usage Patterns
 
 **Pattern 1: In Request Context** (most common):
 
@@ -1163,7 +1173,7 @@ import { changeLanguage } from '@/framework/helpers/i18n.helper'
 await changeLanguage('vi')
 ```
 
-### 10.5. Language Detection
+### 12.5. Language Detection
 
 **Detection Order** (configurable):
 
@@ -1189,7 +1199,7 @@ curl https://api.example.com/users?lang=vi
 curl -H "Cookie: i18next=vi" https://api.example.com/users
 ```
 
-### 10.6. Best Practices
+### 12.6. Best Practices
 
 **✅ DO**:
 
@@ -1214,7 +1224,7 @@ throw new Error('User not found') // ❌
 throw new NotFoundError(req.t('user.notFound', { id })) // ✅
 ```
 
-### 10.7. Testing Translations
+### 12.7. Testing Translations
 
 ```js
 import { exists, t } from '@/framework/helpers/i18n.helper'
@@ -1234,9 +1244,9 @@ describe('i18n', () => {
 
 ---
 
-## 11. Caching Strategy
+## 13. Caching Strategy
 
-### 11.1. Overview
+### 13.1. Overview
 
 Project implements **Redis-based caching** với:
 
@@ -1246,7 +1256,7 @@ Project implements **Redis-based caching** với:
 - **Size monitoring**: Warn on large cache entries
 - **Auto-cleanup**: Graceful shutdown disconnect
 
-### 11.2. Architecture
+### 13.2. Architecture
 
 ```
 framework/
@@ -1260,7 +1270,7 @@ framework/
 - `redis.helper.js`: Connection management, auto-reconnect, graceful shutdown
 - `cache.helper.js`: Key generation, serialization, TTL handling
 
-### 11.3. Redis Connection Management
+### 13.3. Redis Connection Management
 
 **Features**:
 
@@ -1319,7 +1329,7 @@ export const getClient = async () => {
 }
 ```
 
-### 11.4. Cache Key Strategy
+### 13.4. Cache Key Strategy
 
 **Key Format**:
 
@@ -1370,7 +1380,7 @@ Input Query Params → Flatten Nested → Sort Keys → Serialize → Hash (prod
 - ✅ Easy debugging (readable in development)
 - ✅ Efficient (hashed in production to save memory)
 
-### 11.5. Cache Usage Patterns
+### 13.5. Cache Usage Patterns
 
 **Pattern 1: Cache-Aside (Lazy Loading)**:
 
@@ -1461,7 +1471,7 @@ const cache = await getCache({
 })
 ```
 
-### 11.6. Cache Invalidation Strategies
+### 13.6. Cache Invalidation Strategies
 
 **Strategy 1: Time-Based (TTL)**:
 
@@ -1510,7 +1520,7 @@ async function warmCache() {
 // Run periodically via cron or queue
 ```
 
-### 11.7. Cache Monitoring
+### 13.7. Cache Monitoring
 
 **Size Monitoring**:
 
@@ -1542,7 +1552,7 @@ myapp_main:model=post:alias=post-list:query=page=1|limit=10
 myapp_main:model=post:alias=post-list:query=a3d5e9f1b2c4
 ```
 
-### 11.8. Best Practices
+### 13.8. Best Practices
 
 **✅ DO**:
 
@@ -2166,6 +2176,104 @@ userId: Joi.string().custom(isMongoIdDto).custom(makeMongoIdDto).required()
 userId: Joi.string().custom(makeMongoIdDto).required()
 ```
 
+### 7.7. axios.helper.js - HTTP Client Utilities
+
+**Purpose**: Centralized HTTP client wrapper for making external API calls với axios.
+
+**Core Functions**:
+
+```js
+import { $get, $post } from '@/framework/helpers/axios.helper'
+
+// GET request
+const response = await $get('/api/users/123')
+const response = await $get('/api/users', {
+  params: { page: 1, limit: 10 },
+  headers: { Authorization: 'Bearer token' },
+})
+
+// POST request
+const response = await $post('/api/users', {
+  name: 'John Doe',
+  email: 'john@example.com',
+})
+const response = await $post('/api/users', data, {
+  headers: { Authorization: 'Bearer token' },
+})
+```
+
+**Features**:
+
+- **Centralized axios instance**: Configured with baseURL from config
+- **Automatic logging**: Logs HTTP method and endpoint via Winston
+- **Consistent error handling**: Axios errors can be caught and handled uniformly
+- **Config flexibility**: Accepts standard axios config options
+
+**Configuration**:
+
+```js
+// In app.config.js
+apiEndpoint: 'https://api.example.com'
+
+// Creates axios instance with baseURL
+const axiosInstance = axios.create({
+  baseURL: config.apiEndpoint,
+})
+```
+
+**Usage Example**:
+
+```js
+import { InternalServerError } from '@/core/helpers'
+
+import { $get, $post } from '@/framework/helpers/axios.helper'
+
+class ExternalApiService {
+  async fetchUserData(userId) {
+    try {
+      const response = await $get(`/users/${userId}`)
+      return response.data
+    } catch (err) {
+      throw new InternalServerError('Failed to fetch user data', err)
+    }
+  }
+
+  async createUser(userData) {
+    try {
+      const response = await $post('/users', userData)
+      return response.data
+    } catch (err) {
+      if (err.response?.status === 409) {
+        throw new ConflictError('User already exists')
+      }
+      throw new InternalServerError('Failed to create user', err)
+    }
+  }
+}
+```
+
+**Best Practices**:
+
+```js
+// ✅ Good: Wrap in service layer with error handling
+class ApiService {
+  async fetchData(endpoint) {
+    try {
+      const response = await $get(endpoint)
+      return response.data
+    } catch (err) {
+      throw new InternalServerError('API call failed', err)
+    }
+  }
+}
+
+// ✅ Good: Use with timeout
+const response = await $get('/slow-endpoint', { timeout: 5000 })
+
+// ❌ Bad: Direct usage without error handling
+const response = await $get('/api/users') // Might throw unhandled errors
+```
+
 ---
 
 ## 8. Configuration System
@@ -2537,9 +2645,9 @@ Raw Input → Joi Validation → Deep Sanitize → Filter Unknown → Safe Outpu
 
 ---
 
-## 12. Build & Development Workflow
+## 14. Build & Development Workflow
 
-### 12.1. Scripts Overview
+### 14.1. Scripts Overview
 
 ```json
 {
@@ -2552,7 +2660,7 @@ Raw Input → Joi Validation → Deep Sanitize → Filter Unknown → Safe Outpu
 }
 ```
 
-### 12.2. Development Workflow
+### 14.2. Development Workflow
 
 **1. Development Mode**:
 
@@ -2579,7 +2687,7 @@ pnpm lint:fix          # Auto-fix lint errors
 pnpm format            # Format code with Prettier
 ```
 
-### 12.3. Build Process
+### 14.3. Build Process
 
 **Development Build**:
 
@@ -2600,7 +2708,7 @@ pnpm build
 # - Source maps for debugging
 ```
 
-### 12.4. Babel Configuration
+### 14.4. Babel Configuration
 
 **Target**: Node.js 18+, CommonJS modules
 
@@ -2617,7 +2725,7 @@ pnpm build
 - **production**: Remove console, no comments
 - **test**: Current node version
 
-### 12.5. ESLint Configuration
+### 14.5. ESLint Configuration
 
 **Plugins**:
 
@@ -2632,7 +2740,7 @@ pnpm build
 - `import/no-unresolved`, `import/no-cycle` - Import checks
 - `security/detect-object-injection` - Security warnings
 
-### 12.6. Git Workflow
+### 14.6. Git Workflow
 
 **Conventional Commits**:
 
@@ -2659,9 +2767,9 @@ git push --follow-tags
 
 ---
 
-## 13. Best Practices & Patterns
+## 15. Best Practices & Patterns
 
-### 13.1. Error Handling
+### 15.1. Error Handling
 
 **✅ DO**:
 
@@ -2696,7 +2804,7 @@ catch (err) {
 }
 ```
 
-### 13.2. Validation
+### 15.2. Validation
 
 **✅ DO**:
 
@@ -2726,7 +2834,7 @@ if (!req.body.email) {
 const age = Number(req.query.age)
 ```
 
-### 13.3. Logging
+### 15.3. Logging
 
 **✅ DO**:
 
@@ -2754,7 +2862,7 @@ logger.info('User data', { password: user.password })
 logger.error('User logged in') // Should be info
 ```
 
-### 13.4. Controller Design
+### 15.4. Controller Design
 
 **✅ DO**:
 
@@ -2784,7 +2892,7 @@ const getUser = async (req, res) => {
 }
 ```
 
-### 13.5. Configuration
+### 15.5. Configuration
 
 **✅ DO**:
 
@@ -2811,7 +2919,7 @@ const port = process.env.PORT || 8000
 const jwtSecret = process.env.JWT_SECRET // Might be undefined
 ```
 
-### 13.6. Middleware Order
+### 15.6. Middleware Order
 
 **✅ DO**:
 
@@ -2834,7 +2942,7 @@ app.use(requestLogger) // Before context setup
 app.use(requestContext())
 ```
 
-### 13.7. Async/Await Patterns
+### 15.7. Async/Await Patterns
 
 **✅ DO**:
 
@@ -2863,7 +2971,7 @@ const users = await getUsers()
 const posts = await getPosts() // Waits for users unnecessarily
 ```
 
-### 13.8. Security
+### 15.8. Security
 
 **✅ DO**:
 
@@ -2890,7 +2998,7 @@ const query = `SELECT * FROM users WHERE id = ${userId}`
 // Missing security headers
 ```
 
-### 13.9. Testing
+### 15.9. Testing
 
 **✅ DO**:
 
@@ -2922,7 +3030,7 @@ it('should work', () => {
 })
 ```
 
-### 13.10. Code Organization
+### 15.10. Code Organization
 
 **✅ DO**:
 
@@ -3003,6 +3111,8 @@ import {
   PaginatedResponse,
   stdGetListQueryParams,
 } from '@/framework/helpers/api.helper'
+// HTTP Client
+import { $get, $post } from '@/framework/helpers/axios.helper'
 // Caching
 import { delCache, getCache, setCache } from '@/framework/helpers/cache.helper'
 // Date
