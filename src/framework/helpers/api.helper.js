@@ -1,7 +1,7 @@
 /*
  * Author: Dzung Dang
  */
-import { HTTP_STATUS, HTTP_STATUS_MESSAGE } from '@/core/constants'
+import { HTTP_STATUS } from '@/core/constants'
 import { HttpResponse, Joi } from '@/core/helpers'
 
 const SORT_BY_REGEX = /^[a-zA-Z0-9_-]+$/
@@ -20,8 +20,8 @@ export const stdQueryParams = {
 export const stdGetListQueryParams = Joi.object(stdQueryParams)
 
 export class PaginatedResponse extends HttpResponse {
-  constructor(data, metadata = {}, message = HTTP_STATUS_MESSAGE.OK) {
-    super(HTTP_STATUS.OK, data, message, metadata)
+  constructor(data, metadata = {}, message = HTTP_STATUS.OK.message) {
+    super(HTTP_STATUS.OK.code, data, message, metadata)
   }
 
   toJSON() {

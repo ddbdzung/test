@@ -19,48 +19,37 @@ import {
  * @returns {*} Filtered value with only schema-defined keys
  */
 const pickDefinedKeys = (schema, value) => {
-  // Handle array schemas - deep sanitize array elements
   if (Array.isArray(value)) {
     return deepSanitize(value)
   }
 
-  // Handle object schemas
   if (isObject(value)) {
-    // Get schema description - handle both Joi objects and descriptions
     const schemaDescription =
       typeof schema.describe === 'function' ? schema.describe() : schema
 
-    // Check if schema has keys (object schema)
     if (schemaDescription.keys) {
-      // Handle array schemas
-      if (Array.isArray(value)) {
-        return value // For arrays, return the value as-is since Joi already validated it
-      }
+      const schemaKeys = Object.keys(schemaDescription.keys)
+      const result = {}
 
-      // Handle object schemas
-      if (typeof value === 'object' && value !== null) {
-        const schemaDescription = schema.describe()
+      for (const key of schemaKeys) {
+        if (key in value && !isDangerousKey(key)) {
+          const nestedSchema = schemaDescription.keys[key]
+          const nestedValue = value[key]
 
-        // Check if schema has keys (object schema)
-        if (schemaDescription.keys) {
-          const schemaKeys = new Set(Object.keys(schemaDescription.keys))
-
-          // Filter out only the allowed keys
-          return Object.fromEntries(
-            Object.entries(value).filter(([key]) => schemaKeys.has(key))
-          )
+          if (nestedSchema && nestedValue !== undefined) {
+            result[key] = pickDefinedKeys(nestedSchema, nestedValue)
+          } else {
+            result[key] = deepSanitize(nestedValue)
+          }
         }
       }
 
-      // For non-object, non-array values, return as-is
-      return value
+      return result
     }
 
-    // If no keys defined in schema, still sanitize to remove dangerous keys
     return deepSanitize(value)
   }
 
-  // For non-object, non-array values, return as-is
   return value
 }
 

@@ -46,9 +46,12 @@ export const errorHandler = (err, _req, res, next) => {
     if (err instanceof BaseError) {
       const resp = err.toJSON()
       // Hide sensitive information in production, only log
-      if (isProduction && err.statusCode >= HTTP_STATUS.INTERNAL_SERVER_ERROR) {
+      if (
+        isProduction &&
+        err.statusCode >= HTTP_STATUS.INTERNAL_SERVER_ERROR.code
+      ) {
         logger.error('HANDLED_ERROR', resp)
-        res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json(safeErrorResp)
+        res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR.code).json(safeErrorResp)
         next()
         return
       }
@@ -65,7 +68,7 @@ export const errorHandler = (err, _req, res, next) => {
     }
 
     // Hide sensitive information in production, only log
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR.code)
     if (err instanceof Error) {
       if (isProduction) {
         logger.error('UNHANDLED_ERROR', { err })
@@ -90,7 +93,7 @@ export const errorHandler = (err, _req, res, next) => {
   } catch (error) {
     // Unknown error
     logger.error('UNKNOWN_ERROR', { error })
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json(safeErrorResp)
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR.code).json(safeErrorResp)
     next()
   }
 }

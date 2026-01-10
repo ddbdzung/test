@@ -1,8 +1,5 @@
 import { CURRENT_ENV, ENVIRONMENT } from '@/constants/common.constant'
-import {
-  HTTP_STATUS,
-  getHttpStatusMessageCode,
-} from '@/constants/http-status.constant'
+import { HTTP_STATUS, getHttpStatus } from '@/constants/http-status.constant'
 
 import { mergeOptions } from '@/core/utils'
 
@@ -56,13 +53,12 @@ export class BaseError extends Error {
 
     // Error identity
     this.name = this.constructor.name
-    this.message = message?.trim()
+    this.message = message?.trim() || 'Unknown error'
 
     // HTTP context
-    this.statusCode = options.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR
-    this.code =
-      options.code ||
-      getHttpStatusMessageCode(this.statusCode).statusCodeMessage
+    this.statusCode =
+      options.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR.code
+    this.code = options.code || getHttpStatus(this.statusCode).key
 
     // Error classification
     this.isOperational = options.isOperational ?? true // true: Operational Errors, false: Programming Errors
@@ -165,7 +161,7 @@ export class ValidationError extends BaseError {
    */
   constructor(message, details = []) {
     super(message, {
-      statusCode: HTTP_STATUS.BAD_REQUEST,
+      statusCode: HTTP_STATUS.BAD_REQUEST.code,
       code: 'VALIDATION_ERROR',
       context: { errors: details },
       isOperational: true,
@@ -188,7 +184,7 @@ export class NotFoundError extends BaseError {
    */
   constructor(resource = 'Resource', identifier = null) {
     super(`${resource} not found`, {
-      statusCode: HTTP_STATUS.NOT_FOUND,
+      statusCode: HTTP_STATUS.NOT_FOUND.code,
       code: 'NOT_FOUND',
       context: { resource, identifier },
       isOperational: true,
@@ -207,7 +203,7 @@ export class UnauthorizedError extends BaseError {
    */
   constructor(message = 'Authentication required') {
     super(message, {
-      statusCode: HTTP_STATUS.UNAUTHORIZED,
+      statusCode: HTTP_STATUS.UNAUTHORIZED.code,
       code: 'UNAUTHORIZED',
       isOperational: true,
     })
@@ -225,7 +221,7 @@ export class ForbiddenError extends BaseError {
    */
   constructor(message = 'Access denied') {
     super(message, {
-      statusCode: HTTP_STATUS.FORBIDDEN,
+      statusCode: HTTP_STATUS.FORBIDDEN.code,
       code: 'FORBIDDEN',
       isOperational: true,
     })
@@ -244,7 +240,7 @@ export class ConflictError extends BaseError {
    */
   constructor(message, conflictDetails = {}) {
     super(message, {
-      statusCode: HTTP_STATUS.CONFLICT,
+      statusCode: HTTP_STATUS.CONFLICT.code,
       code: 'CONFLICT',
       context: conflictDetails,
       isOperational: true,
@@ -264,7 +260,7 @@ export class TooManyRequestsError extends BaseError {
    */
   constructor(message, context = {}) {
     super(message, {
-      statusCode: HTTP_STATUS.TOO_MANY_REQUESTS,
+      statusCode: HTTP_STATUS.TOO_MANY_REQUESTS.code,
       code: 'TOO_MANY_REQUESTS',
       context,
       isOperational: true,
@@ -288,7 +284,7 @@ export class InternalServerError extends BaseError {
     super(
       message,
       mergeOptions(options, {
-        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR.code,
         code: 'INTERNAL_ERROR',
         cause,
         isOperational: false, // Usually a programming error
@@ -309,7 +305,7 @@ export class ServiceUnavailableError extends BaseError {
    */
   constructor(service = 'Service', cause = null) {
     super(`${service} is currently unavailable`, {
-      statusCode: HTTP_STATUS.SERVICE_UNAVAILABLE,
+      statusCode: HTTP_STATUS.SERVICE_UNAVAILABLE.code,
       code: 'SERVICE_UNAVAILABLE',
       context: { service },
       cause,
@@ -337,7 +333,7 @@ export class BusinessError extends BaseError {
    */
   constructor(message, errorCode, context = {}) {
     super(message, {
-      statusCode: HTTP_STATUS.BAD_REQUEST,
+      statusCode: HTTP_STATUS.BAD_REQUEST.code,
       code: errorCode,
       context,
       isOperational: true,
