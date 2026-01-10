@@ -1,7 +1,4 @@
-import {
-  HTTP_STATUS,
-  HTTP_STATUS_MESSAGE_CODE_MAP,
-} from '@/constants/http-status.constant'
+import { HTTP_STATUS, getHttpStatus } from '@/constants/http-status.constant'
 
 /**
  * Class to build standardized HTTP response
@@ -15,10 +12,11 @@ export class HttpResponse {
    * @param {any} [metadata] - Metadata to send in the response
    */
   constructor(statusCode, data, message, metadata = {}) {
-    this.statusCode = statusCode || HTTP_STATUS.OK
-    this.success = statusCode >= 200 && statusCode < 300
+    this.statusCode = statusCode || HTTP_STATUS.OK.code
+    this.success = this.statusCode >= 200 && this.statusCode < 300
     this.data = data
-    this.message = message || HTTP_STATUS_MESSAGE_CODE_MAP[this.statusCode]
+    this.message =
+      message || getHttpStatus(this.statusCode)?.message || 'Unknown'
     this.metadata = metadata
     this.timestamp = new Date().toISOString()
   }

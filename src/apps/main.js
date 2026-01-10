@@ -13,23 +13,29 @@ const app = createApp(APP_NAME.MAIN, app => {
   app.use(`/${API_PREFIX}`, mainRoutes)
 })
 
-const server = app.listen(config.port, async err => {
-  if (err) {
+let server = null
+try {
+  server = app.listen(config.port, async () => {
+    await Promise.all([
+      connectMongoDB(
+        config.mongo.connections.main.uri,
+        config.mongo.connections.main.options
+      ),
+      connectRedis(),
+    ])
+
+    logger.info(`Server '${APP_NAME.MAIN}' is running on port ${config.port}`)
+  })
+
+  server.on('error', err => {
     logger.error(`Failed to start server '${APP_NAME.MAIN}'`, { err })
     process.exit(1)
-  }
+  })
 
-  await Promise.all([
-    connectMongoDB(
-      config.mongo.connections.main.uri,
-      config.mongo.connections.main.options
-    ),
-    connectRedis(),
-  ])
-
-  logger.info(`Server '${APP_NAME.MAIN}' is running on port ${config.port}`)
-})
-
-setupGracefulShutdown(server)
+  setupGracefulShutdown(server)
+} catch (err) {
+  logger.error(`Failed to start server '${APP_NAME.MAIN}'`, { err })
+  process.exit(1)
+}
 
 export default server

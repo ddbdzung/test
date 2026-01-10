@@ -1,103 +1,41 @@
-export const HTTP_STATUS_MESSAGE = {
-  // Success
-  OK: 'OK',
-  CREATED: 'Created',
-  ACCEPTED: 'Accepted',
-  NO_CONTENT: 'No Content',
-
-  // Client errors
-  BAD_REQUEST: 'Bad Request',
-  UNAUTHORIZED: 'Unauthorized',
-  FORBIDDEN: 'Forbidden',
-  NOT_FOUND: 'Not Found',
-  CONFLICT: 'Conflict',
-  UNPROCESSABLE_ENTITY: 'Unprocessable Entity',
-  TOO_MANY_REQUESTS: 'Too Many Requests',
-  REQUEST_TIMEOUT: 'Request Timeout',
-
-  // Server errors
-  INTERNAL_SERVER_ERROR: 'Internal Server Error',
-  SERVICE_UNAVAILABLE: 'Service Unavailable',
-}
-
 export const HTTP_STATUS = {
-  OK: 200, // Most commonly used in API responses
-  CREATED: 201, // Commonly used for creating a new resource
-  ACCEPTED: 202, // For async operations (like sending email in background)
-  NO_CONTENT: 204, // For empty response (like delete resource)
+  OK: { code: 200, message: 'OK' },
+  CREATED: { code: 201, message: 'Created' },
+  ACCEPTED: { code: 202, message: 'Accepted' },
+  NO_CONTENT: { code: 204, message: 'No Content' },
 
-  BAD_REQUEST: 400, // Catch invalid request input like invalid json format, missing required headers
-  UNAUTHORIZED: 401, // Catch Authenticate errors
-  FORBIDDEN: 403, // Catch Authorization errors
-  NOT_FOUND: 404, // Catch not found of any resource getting failed
-  CONFLICT: 409, // Catch conflict of business logic (existing email,...)
-  UNPROCESSABLE_ENTITY: 422, // Catch unprocessable entity errors (invalid data input - not meet the business logic)
-  TOO_MANY_REQUESTS: 429, // Rate limit exceeded
-  REQUEST_TIMEOUT: 408, // Request timeout
+  BAD_REQUEST: { code: 400, message: 'Bad Request' },
+  UNAUTHORIZED: { code: 401, message: 'Unauthorized' },
+  FORBIDDEN: { code: 403, message: 'Forbidden' },
+  NOT_FOUND: { code: 404, message: 'Not Found' },
+  CONFLICT: { code: 409, message: 'Conflict' },
+  UNPROCESSABLE_ENTITY: { code: 422, message: 'Unprocessable Entity' },
+  TOO_MANY_REQUESTS: { code: 429, message: 'Too Many Requests' },
+  REQUEST_TIMEOUT: { code: 408, message: 'Request Timeout' },
 
-  INTERNAL_SERVER_ERROR: 500, // Catch unexpected errors
-  SERVICE_UNAVAILABLE: 503, // Catch service unavailable errors
+  INTERNAL_SERVER_ERROR: { code: 500, message: 'Internal Server Error' },
+  SERVICE_UNAVAILABLE: { code: 503, message: 'Service Unavailable' },
 }
-
-export const HTTP_STATUS_MESSAGE_CODE = {
-  OK: 'OK',
-  CREATED: 'CREATED',
-  ACCEPTED: 'ACCEPTED',
-  NO_CONTENT: 'NO_CONTENT',
-
-  BAD_REQUEST: 'BAD_REQUEST',
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  FORBIDDEN: 'FORBIDDEN',
-  NOT_FOUND: 'NOT_FOUND',
-  CONFLICT: 'CONFLICT',
-  UNPROCESSABLE_ENTITY: 'UNPROCESSABLE_ENTITY',
-  TOO_MANY_REQUESTS: 'TOO_MANY_REQUESTS',
-  REQUEST_TIMEOUT: 'REQUEST_TIMEOUT',
-
-  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
-  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
-}
-
-export const HTTP_STATUS_MESSAGE_CODE_MAP = {
-  [HTTP_STATUS.OK]: HTTP_STATUS_MESSAGE_CODE.OK,
-  [HTTP_STATUS.CREATED]: HTTP_STATUS_MESSAGE_CODE.CREATED,
-  [HTTP_STATUS.ACCEPTED]: HTTP_STATUS_MESSAGE_CODE.ACCEPTED,
-  [HTTP_STATUS.NO_CONTENT]: HTTP_STATUS_MESSAGE_CODE.NO_CONTENT,
-
-  [HTTP_STATUS.BAD_REQUEST]: HTTP_STATUS_MESSAGE_CODE.BAD_REQUEST,
-  [HTTP_STATUS.UNAUTHORIZED]: HTTP_STATUS_MESSAGE_CODE.UNAUTHORIZED,
-  [HTTP_STATUS.FORBIDDEN]: HTTP_STATUS_MESSAGE_CODE.FORBIDDEN,
-  [HTTP_STATUS.NOT_FOUND]: HTTP_STATUS_MESSAGE_CODE.NOT_FOUND,
-  [HTTP_STATUS.CONFLICT]: HTTP_STATUS_MESSAGE_CODE.CONFLICT,
-  [HTTP_STATUS.UNPROCESSABLE_ENTITY]:
-    HTTP_STATUS_MESSAGE_CODE.UNPROCESSABLE_ENTITY,
-  [HTTP_STATUS.TOO_MANY_REQUESTS]: HTTP_STATUS_MESSAGE_CODE.TOO_MANY_REQUESTS,
-  [HTTP_STATUS.REQUEST_TIMEOUT]: HTTP_STATUS_MESSAGE_CODE.REQUEST_TIMEOUT,
-
-  [HTTP_STATUS.INTERNAL_SERVER_ERROR]:
-    HTTP_STATUS_MESSAGE_CODE.INTERNAL_SERVER_ERROR,
-  [HTTP_STATUS.SERVICE_UNAVAILABLE]:
-    HTTP_STATUS_MESSAGE_CODE.SERVICE_UNAVAILABLE,
-}
+Object.freeze(HTTP_STATUS)
 
 /**
- * @param {number | string} statusCode
- * @returns {{
- *  statusCode: number
- *  statusCodeMessage: string
- *  message: string
- * }}
+ * Find an HTTP status by code.
+ *
+ * @param {number} code - HTTP status code
+ * @returns {{ key: string } & HttpStatusItem}
+ * @throws {Error} If the status code is not defined
  */
-export const getHttpStatusMessageCode = statusCode => {
-  if (!statusCode || !Object.values(HTTP_STATUS).includes(Number(statusCode))) {
-    throw new Error(
-      'Status code not found or not supported, received: ' + statusCode
-    )
+export const getHttpStatus = code => {
+  const entry = Object.entries(HTTP_STATUS).find(([_, v]) => v.code === code)
+
+  if (!entry) {
+    throw new Error(`Status code not found: ${code}`)
   }
 
-  return {
-    statusCode: Number(statusCode),
-    statusCodeMessage: HTTP_STATUS_MESSAGE_CODE_MAP[statusCode],
-    message: HTTP_STATUS_MESSAGE[statusCode],
-  }
+  return { key: entry[0], ...entry[1] }
 }
+
+// Usage Examples:
+// HTTP_STATUS.OK.code // 200
+// HTTP_STATUS.OK.message // "OK"
+// getHttpStatus(200) // { key: "OK", code: 200, message: "OK" }

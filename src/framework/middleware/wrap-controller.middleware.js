@@ -1,11 +1,7 @@
 /*
  * Author: Dzung Dang
  */
-import {
-  HTTP_STATUS,
-  HTTP_STATUS_MESSAGE,
-  TIMEOUT_CONTROLLER,
-} from '@/core/constants'
+import { HTTP_STATUS, TIMEOUT_CONTROLLER } from '@/core/constants'
 import { BaseError, HttpResponse, InternalServerError } from '@/core/helpers'
 import { mergeOptions, snooze } from '@/core/utils'
 
@@ -32,7 +28,7 @@ export const wrapController = (controllerFn, options) => {
         controllerFn(req, res, next),
         snooze(timeout).then(() => {
           return new BaseError('Request timeout', {
-            statusCode: HTTP_STATUS.REQUEST_TIMEOUT,
+            statusCode: HTTP_STATUS.REQUEST_TIMEOUT.code,
           })
         }),
       ])
@@ -49,7 +45,7 @@ export const wrapController = (controllerFn, options) => {
       }
 
       const convenientHttpStatusCode =
-        req?.method === 'POST' ? HTTP_STATUS.CREATED : HTTP_STATUS.OK
+        req?.method === 'POST' ? HTTP_STATUS.CREATED.code : HTTP_STATUS.OK.code
 
       if (result === undefined) {
         res.json(new HttpResponse(convenientHttpStatusCode).toJSON())
@@ -61,7 +57,7 @@ export const wrapController = (controllerFn, options) => {
         new HttpResponse(
           convenientHttpStatusCode,
           result,
-          HTTP_STATUS_MESSAGE.OK
+          HTTP_STATUS.OK.message
         ).toJSON()
       )
       next()
