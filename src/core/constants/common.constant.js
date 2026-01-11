@@ -7,7 +7,7 @@ export const ENVIRONMENT = {
 
 export const APP_NAME = {
   MAIN: 'main', // Main app
-  QUEUE: 'queue', // Queue app
+  WORKER: 'worker', // Worker app
   SOCKET: 'socket', // Socket app
 }
 

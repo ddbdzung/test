@@ -8,6 +8,8 @@
     "start": "cross-env NODE_ENV=production node dist/apps/main.js",
     "build": "cross-env NODE_ENV=production babel src --out-dir dist --delete-dir-on-start --source-maps",
     "build:dev": "cross-env NODE_ENV=development babel src --out-dir dist --watch --source-maps",
+    "worker:dev": "cross-env NODE_ENV=development nodemon --config nodemon.worker.json --exec babel-node src/apps/worker.js",
+    "worker:start": "cross-env NODE_ENV=production node dist/apps/worker.js",
     "i18n:parse": "i18next",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",

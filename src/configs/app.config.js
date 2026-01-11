@@ -28,6 +28,7 @@ const rawConfig = {
     apiEndpoint: env.API_ENDPOINT,
     // Ports
     port: env.PORT,
+    portWorker: env.PORT_WORKER,
 
     apiRoot: env.API_ROOT,
 

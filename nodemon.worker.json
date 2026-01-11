@@ -1,0 +1,9 @@
+{
+  "watch": ["src/apps/worker.js", "src/modules/worker.route.js"],
+  "ext": "js,mjs,json",
+  "ignore": ["src/**/*.test.js", "src/**/*.spec.js", "node_modules/", "dist/"],
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "delay": 2000
+}

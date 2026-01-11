@@ -24,7 +24,9 @@ const envSchema = Joi.object({
   SERVICE: Joi.string().required(),
 
   // === Ports ===
-  PORT: Joi.number().default(8000), // Main App Port
+  PORT: Joi.number().default(3_000), // Main App Port
+
+  PORT_WORKER: Joi.number().default(5_000), // Worker App Port
 
   // === Network ===
   API_ROOT: Joi.string().allow('').default('api'),
