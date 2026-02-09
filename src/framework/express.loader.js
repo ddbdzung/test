@@ -8,6 +8,7 @@ import helmet from 'helmet'
 
 import { ValidationError, logger } from '@/core/helpers'
 
+import { queryParser } from '@/framework/helpers/api.v2.helper'
 import { addResponseTime } from '@/framework/middleware/add-response-time.middleware'
 import { errorHandler } from '@/framework/middleware/error-handler.middleware'
 import { i18nMiddleware } from '@/framework/middleware/localize.middleware'
@@ -32,7 +33,15 @@ export const createApp = (name, callback = () => {}) => {
   app.use(compression())
   app.use(helmet())
 
+  app.set('query parser', 'extended')
   app.use(express.json({ limit: '1mb' }))
+  app.use(queryParser())
+  app.get('test/core', (req, res, next) => {
+    res.json({
+      message: 'Hello World',
+    })
+    next()
+  })
   app.use((err, _req, _res, next) => {
     // Handle JSON body parsing error
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
