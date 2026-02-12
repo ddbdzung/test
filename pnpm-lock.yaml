@@ -59,6 +59,9 @@ importers:
       babel-plugin-transform-remove-console:
         specifier: ^6.9.4
         version: 6.9.4
+      cheerio:
+        specifier: ^1.1.2
+        version: 1.1.2
       compression:
         specifier: ^1.8.1
         version: 1.8.1
@@ -4368,6 +4371,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}

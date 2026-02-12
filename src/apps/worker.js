@@ -5,15 +5,22 @@ import logger from '@/core/helpers/logger.helper'
 
 import { createApp } from '@/framework/express.loader'
 import { connectMongoDB } from '@/framework/helpers'
-import { setupGracefulShutdown } from '@/framework/shutdown.helper'
+import {
+  registerShutdownTask,
+  setupGracefulShutdown,
+} from '@/framework/shutdown.helper'
 
+import { startBackgroundProcessor } from '@/modules/job'
 import workerRoutes from '@/modules/worker.route'
 
+const JOB_POLL_INTERVAL_MS = 15_000
+
 const app = createApp(APP_NAME.WORKER, app => {
-  app.use(`/${API_PREFIX}`, workerRoutes)
+  app.use(`/${API_PREFIX}/worker`, workerRoutes)
 })
 
 let server = null
+let jobProcessorInterval = null
 try {
   server = app.listen(config.portWorker, async () => {
     await connectMongoDB(
@@ -25,6 +32,11 @@ try {
       `Server '${APP_NAME.WORKER}' is running on port ${config.portWorker}`
     )
     global.lastDeployedAt = new Date().toISOString()
+
+    jobProcessorInterval = startBackgroundProcessor(JOB_POLL_INTERVAL_MS)
+    registerShutdownTask(() => {
+      if (jobProcessorInterval) clearInterval(jobProcessorInterval)
+    }, 'job-processor')
   })
 
   server.on('error', err => {
